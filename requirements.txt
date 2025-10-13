@@ -41,6 +41,13 @@ redis==5.0.1              # Client Redis pour cache
 hiredis==2.2.3            # Parser Redis rapide (optionnel)
 
 # ============================================
+# DATA LAKE (OPTIONNEL - PHASE 3-4)
+# ============================================
+azure-storage-blob==12.19.0    # Azure Blob Storage pour Data Lake
+minio==7.2.0                   # MinIO (alternative open-source à Azure Blob)
+boto3==1.34.10                 # AWS S3 (si utilisation d'AWS)
+
+# ============================================
 # SCHEDULING & AUTOMATION
 # ============================================
 APScheduler==3.10.4       # Planification des tâches (scraping hebdomadaire)

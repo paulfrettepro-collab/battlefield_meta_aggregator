@@ -43,6 +43,7 @@ Intérroger les sites web hebdomadairement pour capturer les changements de mét
 
 ### Stack additionnelle (Production - Phase 3-4)
 - **Redis** → cache des résultats de consensus (amélioration performances)
+- **Azure Blob Storage / MinIO** → Data Lake pour données non structurées (HTML brut, images, vidéos)
 - **Sentry** → monitoring des erreurs et alertes en temps réel
 - **Discord/Slack Webhook** → notifications si scraping échoue
 - **GitHub Actions / Airflow** → orchestration avancée des pipelines (optionnel)
@@ -81,36 +82,50 @@ battlefield-meta/
 
 ## 3. Étapes du pipeline data
 
+### Data Lake — Stockage brut (données non structurées)
+- **Stockage** des fichiers bruts dans Azure Blob Storage / MinIO
+  - HTML complet des pages scrapées
+  - Images (screenshots d'armes, patchnotes)
+  - Vidéos (tutoriels YouTube, streamers)
+  - Fichiers JSON brut (réponses API)
+  - Logs de scraping détaillés
+- **Organisation** par source et date : `/{source}/{year}/{month}/{day}/{filename}`
+- **Métadonnées** : contenu_hash, taille, URL origine, date scraping
+- **Rétention** : 6 mois pour analyse historique et ML futur
+
 ### Bronze — Ingestion (Automatisée hebdomadairement)
 - **Scraping** des pages publiques via APScheduler (tous les lundis à 2h)
 - **Retry automatique** avec Tenacity (3 tentatives, backoff exponentiel)
 - **Logging structuré** de chaque opération (succès/échecs)
-- **Sauvegarde** des pages HTML ou JSON bruts dans SQL Server (table `raw_pages`)
+- **Sauvegarde Data Lake** : fichiers bruts (HTML, JSON) dans Azure Blob / MinIO
+- **Sauvegarde SQL Server** : métadonnées dans table `raw_pages` (référence vers Data Lake)
 - **Alertes** Discord/Slack si échec après 3 tentatives
 
 ### Silver — Transformation
-- **Extraction** des entités principales : armes, classes, accessoires
+- **Extraction** des entités principales depuis Data Lake : armes, classes, accessoires
 - **Nettoyage** et harmonisation des noms et unités
 - **Validation** des données (détection anomalies)
-- **Structuration** dans des tables `extracted_items`
+- **Structuration** dans des tables `extracted_items` (SQL Server)
+- **Enrichissement** : possibilité d'analyser images/vidéos du Data Lake avec AI (Phase 4)
 
 ### Gold — Synthèse
 - **Calcul** d'un score normalisé pour chaque entité (échelle 0-1)
 - **Pondération** par crédibilité et fraîcheur des sources
 - **Calcul du consensus** final (classement + justification)
-- **Stockage** dans la table `consensus`
+- **Stockage** dans la table `consensus` (SQL Server)
 - **Mise en cache Redis** (TTL 1h) pour performances API
+- **Export Data Lake** : résultats JSON pour analyses futures
 
 ---
 
 ## 4. Modèle de données (simplifié)
 
-| Table | Description |
-|-------|-------------|
-| sources | Liste des sites à scraper et leur stratégie |
-| raw_pages | Données brutes (HTML/JSON) |
-| extracted_items | Données extraites et nettoyées |
-| consensus | Résultat agrégé et classé |
+| Couche | Stockage | Tables/Conteneurs | Description |
+|--------|----------|-------------------|-------------|
+| **Data Lake** | Azure Blob / MinIO | `raw-html/`, `raw-json/`, `images/`, `videos/` | Fichiers bruts non structurés |
+| **Bronze** | SQL Server | `sources`, `raw_pages`, `datalake_files` | Métadonnées + références Data Lake |
+| **Silver** | SQL Server | `extracted_items` | Données extraites et nettoyées |
+| **Gold** | SQL Server | `consensus` | Résultat agrégé et classé |
 
 ### Exemple de structure
 ```sql
@@ -169,6 +184,7 @@ docker-compose up --build
 Puis ouvrir :
 - API : http://localhost:8000/docs
 - Web app : http://localhost:3000
+- MinIO Console (Data Lake) : http://localhost:9001
 
 ## 9. Sécurité & éthique
 
@@ -183,12 +199,12 @@ Puis ouvrir :
 
 | Phase | Description | Livrables | Stack ajoutée |
 |-------|-------------|-----------|---------------|
-| 0 | Initialisation projet | Repo GitHub + Docker + .gitignore + .env ✅ | Git, Docker |
-| 1 | MVP (1 source) | Scraping + parsing + stockage bronze/silver/gold | Python, BeautifulSoup, PostgreSQL, SQLAlchemy |
-| 2 | Multi-sources | Scraping 10 sources + consensus pondéré + retry | Tenacity, APScheduler, Loguru |
-| 3 | Front-end | API FastAPI + Next.js + classements & filtres | FastAPI, Next.js, Swagger |
-| 4 | Production | Cache Redis + monitoring Sentry + alertes Discord | Redis, Sentry, Webhooks |
-| 5 | Optimisation avancée | Historique des patchs + comparaisons temporelles + ML (optionnel) | TimescaleDB, scikit-learn |
+| 0 | Initialisation projet | Repo GitHub + Docker + .gitignore + .env ✅ | Git, Docker, SQL Server |
+| 1 | MVP (1 source) | Scraping + parsing + stockage bronze/silver/gold + Data Lake | Python, BeautifulSoup, SQL Server, SQLAlchemy, MinIO |
+| 2 | Multi-sources | Scraping 10 sources + consensus pondéré + retry + Data Lake | Tenacity, APScheduler, Loguru |
+| 3 | Front-end + Data Lake | API FastAPI + Next.js + classements & filtres + accès Data Lake | FastAPI, Next.js, Swagger |
+| 4 | Production | Cache Redis + monitoring Sentry + alertes Discord + Azure Blob | Redis, Sentry, Webhooks, Azure Blob Storage |
+| 5 | AI & Analytics | Analyse images/vidéos Data Lake + ML prédictions méta | Azure AI Vision, scikit-learn, TensorFlow |
 
 ## 11. Pitch technique (30 sec)
 

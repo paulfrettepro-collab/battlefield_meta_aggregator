@@ -47,6 +47,28 @@ services:
       retries: 5
 
   # ============================================
+  # DATA LAKE - MINIO (Alternative open-source à Azure Blob)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: battlefield_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"      # API
+      - "9001:9001"      # Console Web
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ============================================
   # BACKEND API (FASTAPI + SCRAPER)
   # ============================================
   backend:
@@ -70,6 +92,8 @@ services:
       sqlserver:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -101,6 +125,8 @@ volumes:
   sqlserver_data:
     driver: local
   redis_data:
+    driver: local
+  minio_data:
     driver: local
   scraper_logs:
     driver: local
