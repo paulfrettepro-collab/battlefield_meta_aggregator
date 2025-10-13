@@ -195,16 +195,284 @@ Puis ouvrir :
 - **Monitoring et alertes** pour détecter les échecs de scraping
 - **Mise à disposition d'un contact** pour demande de retrait (contact email dans .env)
 
-## 10. Roadmap
+## 10. Roadmap & Étapes Détaillées
 
-| Phase | Description | Livrables | Stack ajoutée |
-|-------|-------------|-----------|---------------|
-| 0 | Initialisation projet | Repo GitHub + Docker + .gitignore + .env ✅ | Git, Docker, SQL Server |
-| 1 | MVP (1 source) | Scraping + parsing + stockage bronze/silver/gold + Data Lake | Python, BeautifulSoup, SQL Server, SQLAlchemy, MinIO |
-| 2 | Multi-sources | Scraping 10 sources + consensus pondéré + retry + Data Lake | Tenacity, APScheduler, Loguru |
-| 3 | Front-end + Data Lake | API FastAPI + Next.js + classements & filtres + accès Data Lake | FastAPI, Next.js, Swagger |
-| 4 | Production | Cache Redis + monitoring Sentry + alertes Discord + Azure Blob | Redis, Sentry, Webhooks, Azure Blob Storage |
-| 5 | AI & Analytics | Analyse images/vidéos Data Lake + ML prédictions méta | Azure AI Vision, scikit-learn, TensorFlow |
+### 📋 Légende des statuts
+- ✅ **Validé et complet** : Étape terminée et testée
+- 🔄 **En cours** : En cours de développement
+- ⏳ **À faire** : Non démarré, prochaine étape
+- 📝 **Planifié** : Planifié pour une phase ultérieure
+
+---
+
+## Phase 0 : Initialisation & Configuration ✅
+
+### ✅ 0.1 Configuration Git & GitHub
+- [x] Initialisation du repository Git local
+- [x] Connexion au repository GitHub distant (`paulfrettepro-collab/battlefield_meta_aggregator`)
+- [x] Configuration des branches (sandbox, staging, main)
+- [x] Premier commit et push
+
+**Commandes exécutées** :
+```bash
+git init
+git remote add origin https://github.com/paulfrettepro-collab/battlefield_meta_aggregator.git
+git branch -M sandbox
+git add .
+git commit -m "Initial commit"
+git push -u origin sandbox
+```
+
+### ✅ 0.2 Fichiers de configuration
+- [x] `.gitignore` créé avec patterns Python/Node.js/Docker
+- [x] `.env.example` créé avec template de variables
+- [x] `.env` créé avec valeurs réelles (non committé)
+- [x] `requirements.txt` créé avec 40+ dépendances Python
+- [x] `docker-compose.yml` créé avec 5 services (SQL Server, Redis, MinIO, Backend, Frontend)
+
+### ✅ 0.3 Documentation
+- [x] `readme.md` créé avec spécifications complètes (ce fichier)
+- [x] `docs/DATA_LAKE_GUIDE.md` créé - Guide du Data Lake
+- [x] `docs/SQL_SERVER_SETUP.md` créé - Setup SQL Server
+- [x] `docs/STACK_ANALYSIS.md` créé - Analyse technique
+- [x] `docs/PROJECT_STRUCTURE.md` créé - Arborescence détaillée
+- [x] `docs/FILES_EXPLANATION.md` créé - Explication de chaque fichier
+
+### ✅ 0.4 Structure du projet
+- [x] Dossiers créés : `/backend`, `/frontend`, `/scripts`, `/tests`, `/docs`
+- [x] Modules Python initialisés avec `__init__.py`
+- [x] Module Data Lake créé : `backend/utils/datalake.py` (150+ lignes, complet)
+
+**Structure actuelle** :
+```
+battlefield_meta_aggregator/
+├── backend/
+│   ├── api/ (__init__.py)
+│   ├── db/ (__init__.py)
+│   ├── scraper/ (__init__.py)
+│   │   └── parsers/ (__init__.py)
+│   └── utils/ (__init__.py, datalake.py ✅)
+├── docs/ (5 fichiers de documentation ✅)
+├── frontend/ (vide, à remplir Phase 4)
+├── scripts/ (vide, à remplir Phase 2-3)
+├── tests/ (vide, à remplir Phase 2-4)
+├── .env ✅
+├── .env.example ✅
+├── .gitignore ✅
+├── docker-compose.yml ✅
+├── readme.md ✅
+└── requirements.txt ✅
+```
+
+---
+
+## Phase 1 : Infrastructure Base de Données 🔄
+
+### ⏳ 1.1 Installation SQL Server
+- [ ] Installer ODBC Driver 18 pour SQL Server (macOS/Linux/Windows)
+- [ ] Tester connexion avec `pyodbc`
+- [ ] Configurer SQL Server dans Docker (`docker-compose up -d sqlserver`)
+
+**Documentation** : Suivre `docs/SQL_SERVER_SETUP.md`
+
+**Commandes** :
+```bash
+# macOS (Homebrew)
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+brew install msodbcsql18 mssql-tools18
+
+# Vérifier installation
+odbcinst -j
+
+# Démarrer SQL Server
+docker-compose up -d sqlserver
+```
+
+### ⏳ 1.2 Création des modèles SQLAlchemy
+- [ ] Créer `backend/db/models.py` avec les tables :
+  - `sources` : Sites web scrappés (nom, URL, crédibilité)
+  - `raw_pages` : Métadonnées des pages HTML scrappées
+  - `datalake_files` : Index des fichiers dans le Data Lake
+  - `extracted_items` : Données structurées extraites (armes, classes, stats)
+  - `consensus` : Résultats finaux agrégés
+- [ ] Créer `backend/db/connection.py` pour gérer la connexion SQL Server
+
+**Fichier à créer** : `backend/db/models.py` (~200 lignes)
+
+### ⏳ 1.3 Migrations Alembic
+- [ ] Initialiser Alembic : `alembic init backend/db/migrations`
+- [ ] Configurer `alembic.ini` avec la connexion SQL Server
+- [ ] Créer la première migration : `alembic revision --autogenerate -m "Initial schema"`
+- [ ] Appliquer la migration : `alembic upgrade head`
+
+**Documentation** : Section "Alembic Migrations" dans `docs/SQL_SERVER_SETUP.md`
+
+### ⏳ 1.4 Scripts de setup
+- [ ] Créer `scripts/setup_database.py` pour initialiser les tables
+- [ ] Créer `scripts/test_connection.py` pour tester la connexion SQL Server
+- [ ] Créer `scripts/test_datalake.py` pour tester upload/download MinIO
+
+**Validation** : Exécuter les scripts de test sans erreur
+
+---
+
+## Phase 2 : Premier Scraper (MVP avec 1 source) ⏳
+
+### ⏳ 2.1 Classe de base pour les parsers
+- [ ] Créer `backend/scraper/parsers/base_parser.py`
+  - Classe abstraite `BaseParser` avec méthodes :
+    - `fetch_page()` : Télécharge une page HTML
+    - `parse()` : Méthode abstraite à implémenter par chaque parser
+    - `extract_weapons()` : Extraction des armes
+    - `extract_stats()` : Extraction des statistiques
+    - `save_to_bronze()` : Sauvegarde dans Data Lake + SQL Server
+
+**Fichier à créer** : `backend/scraper/parsers/base_parser.py` (~150 lignes)
+
+### ⏳ 2.2 Premier parser concret (PC Gamer)
+- [ ] Créer `backend/scraper/parsers/pcgamer_parser.py`
+  - Classe `PCGamerParser` héritant de `BaseParser`
+  - Inspection manuelle de https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build
+  - Extraction avec BeautifulSoup (sélecteurs CSS)
+  - Test d'extraction sur une page réelle
+
+**Fichier à créer** : `backend/scraper/parsers/pcgamer_parser.py` (~100 lignes)
+
+### ⏳ 2.3 Orchestration du scraping
+- [ ] Créer `backend/scraper/orchestrator.py`
+  - Fonction `scrape_all_sources()` qui appelle chaque parser
+  - Gestion des erreurs avec `tenacity` (3 tentatives, backoff exponentiel)
+  - Logging avec `loguru`
+  - Sauvegarde HTML dans Data Lake + métadonnées dans SQL Server
+
+**Fichier à créer** : `backend/scraper/orchestrator.py` (~120 lignes)
+
+### ⏳ 2.4 Tests du scraper
+- [ ] Créer `scripts/test_scraper.py` pour tester manuellement
+- [ ] Créer `tests/test_parsers.py` avec pytest
+  - Test d'extraction sur HTML mock
+  - Test de sauvegarde dans Data Lake
+  - Test de sauvegarde des métadonnées SQL Server
+
+**Validation** : Scraper capable d'extraire des données de PC Gamer et les sauvegarder
+
+---
+
+## Phase 3 : Pipeline Complet Bronze → Silver → Gold ⏳
+
+### ⏳ 3.1 Normalisation des données (Silver layer)
+- [ ] Créer `backend/utils/normalization.py`
+  - Fonction `normalize_tier()` : S-tier → 1.0, A-tier → 0.8, etc.
+  - Fonction `normalize_percentage()` : 95% win rate → 0.95
+  - Fonction `normalize_rank()` : Rank #1 → 1.0, #10 → 0.1
+  - Fonction `normalize_all()` : Applique toutes les normalisations
+
+**Fichier à créer** : `backend/utils/normalization.py` (~80 lignes)
+
+### ⏳ 3.2 Calcul du consensus (Gold layer)
+- [ ] Créer `backend/utils/consensus.py`
+  - Fonction `calculate_weighted_score()` :
+    - Score = Σ(score_normalisé × crédibilité_source × fraicheur_données) / Σ(crédibilité × fraicheur)
+  - Fonction `generate_consensus()` : Calcule le consensus pour toutes les armes
+  - Sauvegarde dans la table `consensus`
+
+**Fichier à créer** : `backend/utils/consensus.py` (~100 lignes)
+
+### ⏳ 3.3 Tests du pipeline
+- [ ] Créer `tests/test_consensus.py`
+  - Test de normalisation avec données fictives
+  - Test de calcul du consensus avec 3 sources simulées
+  - Test de cohérence (score entre 0 et 1)
+
+**Validation** : Pipeline complet fonctionnel de scraping → normalisation → consensus
+
+---
+
+## Phase 4 : API FastAPI & Frontend Next.js 📝
+
+### 📝 4.1 API FastAPI
+- [ ] Créer `backend/api/main.py` avec FastAPI
+  - Endpoints GET `/weapons/top` (top 10 armes)
+  - Endpoint GET `/weapons/{weapon_name}` (détails arme)
+  - Endpoint GET `/classes/top` (top classes)
+  - Documentation Swagger automatique
+- [ ] Créer `backend/api/schemas.py` avec modèles Pydantic
+- [ ] Créer `backend/Dockerfile` pour conteneuriser l'API
+- [ ] Tester avec `uvicorn backend.api.main:app --reload`
+
+**Validation** : API accessible sur http://localhost:8000/docs
+
+### 📝 4.2 Frontend Next.js
+- [ ] Initialiser projet Next.js : `npx create-next-app@latest frontend`
+- [ ] Créer composants :
+  - `WeaponCard.tsx` : Affichage d'une arme avec stats
+  - `TopWeaponsList.tsx` : Liste des top armes
+  - `FilterBar.tsx` : Filtres (arme, classe, patch)
+- [ ] Intégrer l'API backend avec `fetch()` ou `axios`
+- [ ] Créer `frontend/Dockerfile`
+
+**Validation** : Frontend accessible sur http://localhost:3000
+
+---
+
+## Phase 5 : Production & Monitoring 📝
+
+### 📝 5.1 Cache Redis
+- [ ] Configurer Redis dans `docker-compose.yml` (déjà fait ✅)
+- [ ] Créer `backend/utils/cache.py` pour gérer le cache
+- [ ] Cacher les résultats de consensus (TTL 1 heure)
+
+### 📝 5.2 Monitoring & Alertes
+- [ ] Configurer Sentry pour monitoring erreurs
+- [ ] Créer webhook Discord/Slack pour alertes scraping
+- [ ] Dashboard de monitoring des scrapers
+
+### 📝 5.3 Migration Azure Blob Storage (Data Lake production)
+- [ ] Configurer Azure Blob Storage (compte + container)
+- [ ] Mettre à jour `backend/utils/datalake.py` pour basculer sur Azure (déjà supporté ✅)
+- [ ] Migrer les données de MinIO vers Azure
+
+**Validation** : Monitoring actif + Data Lake en production sur Azure
+
+---
+
+## Phase 6 : AI & Analytics 📝
+
+### 📝 6.1 Analyse d'images/vidéos
+- [ ] Utiliser Azure AI Vision pour extraire du texte des images de loadouts
+- [ ] Parser les vidéos YouTube pour détecter les armes utilisées
+- [ ] Enrichir la base de données avec ces données visuelles
+
+### 📝 6.2 Prédictions ML
+- [ ] Modèle de prédiction de la méta future (scikit-learn)
+- [ ] Analyse de tendances temporelles
+- [ ] Recommandations personnalisées de loadouts
+
+---
+
+## 📊 Récapitulatif Global
+
+| Phase | Nom | Statut | Fichiers créés | Fichiers restants |
+|-------|-----|--------|----------------|-------------------|
+| **Phase 0** | Initialisation | ✅ **Complet** | 17/17 | 0 |
+| **Phase 1** | Infrastructure DB | 🔄 **0% (0/8)** | 0/8 | 8 |
+| **Phase 2** | Premier Scraper | ⏳ **0% (0/7)** | 0/7 | 7 |
+| **Phase 3** | Pipeline Complet | ⏳ **0% (0/5)** | 0/5 | 5 |
+| **Phase 4** | API + Frontend | 📝 **0% (0/10)** | 0/10 | 10 |
+| **Phase 5** | Production | 📝 **0% (0/5)** | 0/5 | 5 |
+| **Phase 6** | AI & Analytics | 📝 **Planifié** | 0/? | ? |
+| **TOTAL** | | **36% (17/47)** | **17/47** | **30** |
+
+---
+
+## 🚀 Prochaine Étape Recommandée
+
+**Phase 1.1** : Installation SQL Server et test de connexion
+- Suivre le guide `docs/SQL_SERVER_SETUP.md`
+- Installer ODBC Driver 18
+- Démarrer SQL Server avec `docker-compose up -d sqlserver`
+- Tester avec `scripts/test_connection.py` (à créer)
 
 ## 11. Pitch technique (30 sec)
 
