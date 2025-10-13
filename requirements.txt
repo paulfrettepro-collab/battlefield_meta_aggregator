@@ -1,0 +1,82 @@
+# ============================================
+# Requirements.txt - Backend Python
+# ============================================
+# Dépendances pour le projet Battlefield Meta Aggregator
+
+# ============================================
+# CORE API
+# ============================================
+fastapi==0.104.1          # Framework API REST moderne
+uvicorn[standard]==0.24.0 # Serveur ASGI pour FastAPI
+pydantic==2.5.0           # Validation de données
+python-multipart==0.0.6   # Support upload fichiers (optionnel)
+
+# ============================================
+# SCRAPING
+# ============================================
+requests==2.31.0          # Requêtes HTTP simples
+beautifulsoup4==4.12.2    # Parsing HTML
+lxml==4.9.3               # Parser rapide pour BeautifulSoup
+selenium==4.15.2          # Scraping sites JavaScript dynamiques
+webdriver-manager==4.0.1  # Gestion automatique des drivers Chrome/Firefox
+
+# ============================================
+# GESTION ERREURS & RETRY
+# ============================================
+tenacity==8.2.3           # Retry automatique avec backoff
+
+# ============================================
+# DATABASE
+# ============================================
+sqlalchemy==2.0.23        # ORM pour PostgreSQL
+alembic==1.12.1           # Migrations de base de données
+psycopg2-binary==2.9.9    # Driver PostgreSQL
+asyncpg==0.29.0           # Driver PostgreSQL async (performances)
+
+# ============================================
+# CACHE (OPTIONNEL - PHASE 4)
+# ============================================
+redis==5.0.1              # Client Redis pour cache
+hiredis==2.2.3            # Parser Redis rapide (optionnel)
+
+# ============================================
+# SCHEDULING & AUTOMATION
+# ============================================
+APScheduler==3.10.4       # Planification des tâches (scraping hebdomadaire)
+
+# ============================================
+# LOGGING
+# ============================================
+loguru==0.7.2             # Logging structuré et élégant
+
+# ============================================
+# MONITORING (OPTIONNEL - PHASE 4)
+# ============================================
+sentry-sdk[fastapi]==1.38.0  # Monitoring des erreurs
+
+# ============================================
+# UTILITIES
+# ============================================
+python-dotenv==1.0.0      # Chargement variables .env
+httpx==0.25.2             # Client HTTP async (alternative à requests)
+aiofiles==23.2.1          # Lecture/écriture fichiers async
+
+# ============================================
+# DATA PROCESSING
+# ============================================
+pandas==2.1.3             # Manipulation de données (optionnel)
+numpy==1.26.2             # Calculs numériques
+
+# ============================================
+# TESTING (DEV)
+# ============================================
+pytest==7.4.3             # Framework de tests
+pytest-asyncio==0.21.1    # Support async pour pytest
+httpx==0.25.2             # Tests API (déjà listé ci-dessus)
+
+# ============================================
+# CODE QUALITY (DEV)
+# ============================================
+black==23.11.0            # Formatage automatique du code
+flake8==6.1.0             # Linter Python
+mypy==1.7.1               # Type checking statique

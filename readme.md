@@ -2,24 +2,50 @@
 
 ## 1. Idée métier
 
-Ce projet vise à construire un site web public qui agrège les données de plusieurs sites communautaires Battlefield afin de répondre à une question simple à chaque mise à jour du jeu :
+Ce projet vise à construire un site web public qui agrège les données de plusieurs sites communautaires Battlefield 6 afin de répondre à une question simple :
 > « Quelle est la méta actuelle ? »
-> (armes les plus performantes, classes dominantes, meilleurs accessoires, etc.)
+> (armes les plus performantes, classes dominantes, classes avec armes dominantes meilleurs accessoires par armes, mode de jeu le plus joué.)
 
 L'objectif est de collecter, normaliser et combiner les informations provenant de plusieurs sources fiables, puis de calculer un consensus global basé sur ces données.
+Automatiser ce flux de données permettrait de fournir des mises à jour rapides et précises de la méta, aidant ainsi les joueurs à optimiser leurs choix d'équipement et de stratégie en temps réel.
+Intérroger les sites web hebdomadairement pour capturer les changements de méta après chaque patch et vérifier si il y a de l'ajout de contenu pertinent (découverte d'une nouvelle meta par un joueur qui partage son expérience par exemple)
 
 ---
+## 1.1 idée de site web qui récupère de la données sur battelfied 6 :
+## 🌍 Sources Battlefield 6 – Guides, Méta & Loadouts
+
+| Nom du site | Type de contenu | Lien |
+|--------------|----------------|------|
+| CODMunity / Battlefinity | Classements d’armes, comparateurs de stats, méta actuelle. | [https://codmunity.gg/battlefield](https://codmunity.gg/battlefield) |
+| BattlefieldMeta (WZStats) | Tier lists, armes les plus performantes, méta actuelle. | [https://wzstats.gg/battlefield-6/meta](https://wzstats.gg/battlefield-6/meta) |
+| Skycoach.gg | Guides de loadouts et accessoires pour chaque arme. | [https://skycoach.gg/blog/battlefield-6/articles/top-loadouts](https://skycoach.gg/blog/battlefield-6/articles/top-loadouts) |
+| Gam3s.gg | Tier lists, classement des meilleures armes, méta par patch. | [https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list](https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list) |
+| PC Gamer | Analyses d’armes et loadouts détaillés, méta du moment. | [https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build](https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build) |
+| GamesRadar | Conseils pour armes, accessoires, et classes à privilégier. | [https://www.gamesradar.com/games/battlefield/battlefield-6-weapons-guns](https://www.gamesradar.com/games/battlefield/battlefield-6-weapons-guns) |
+| Beebom | Guides “best weapons & loadouts”, guides rapides par type d’arme. | [https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide](https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide) |
+| EA Forums – Battlefield 6 Discussions | Discussions communautaires, retours joueurs, stats d’armes. | [https://forums.ea.com/discussions/battlefield-6-general-discussion-en](https://forums.ea.com/discussions/battlefield-6-general-discussion-en) |
+| Epic Games Blog | Guides officiels (snipers, armes, mécaniques du jeu). | [https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6](https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6) |
+| Reddit /r/Battlefield6 | Méta communautaire, retours directs des joueurs. | [https://www.reddit.com/r/Battlefield6/](https://www.reddit.com/r/Battlefield6/) |
 
 ## 2. Architecture technique (vue d'ensemble)
 
-### Stack principale
-- Python → scraping (Requests, BeautifulSoup, Selenium)
-- FastAPI → création d'une API REST légère
-- PostgreSQL → stockage structuré selon la logique bronze/silver/gold
-- SQLAlchemy / Alembic → gestion ORM et migrations
-- Docker & docker-compose → environnement portable et reproductible
-- Next.js / React → front-end simple, connecté à l'API FastAPI
-- GitHub Copilot + VS Code → écriture assistée et automatisée du code
+### Stack principale (MVP - Phase 1-2)
+- **Python** → scraping (Requests, BeautifulSoup, Selenium)
+- **FastAPI** → création d'une API REST légère avec autodoc Swagger
+- **PostgreSQL** → stockage structuré selon la logique bronze/silver/gold
+- **SQLAlchemy / Alembic** → gestion ORM et migrations de base de données
+- **APScheduler** → automatisation et planification du scraping hebdomadaire
+- **Tenacity** → gestion des erreurs et retry automatique pour le scraping
+- **Loguru** → logging structuré et traçabilité des opérations
+- **Docker & docker-compose** → environnement portable et reproductible
+- **Next.js / React** → front-end moderne, SEO-friendly, connecté à l'API FastAPI
+- **GitHub Copilot + VS Code** → écriture assistée et automatisée du code
+
+### Stack additionnelle (Production - Phase 3-4)
+- **Redis** → cache des résultats de consensus (amélioration performances)
+- **Sentry** → monitoring des erreurs et alertes en temps réel
+- **Discord/Slack Webhook** → notifications si scraping échoue
+- **GitHub Actions / Airflow** → orchestration avancée des pipelines (optionnel)
 
 ### Structure des dossiers
 ```
@@ -29,14 +55,17 @@ battlefield-meta/
 │   ├── main.py              # Entrée FastAPI
 │   ├── scraper/
 │   │   ├── sources.py       # URLs à scraper
-│   │   ├── scraper.py       # Logique de scraping
+│   │   ├── scraper.py       # Logique de scraping avec retry
 │   │   ├── parser.py        # Extraction et nettoyage
-│   │   └── consensus.py     # Calcul du consensus
+│   │   ├── consensus.py     # Calcul du consensus
+│   │   └── scheduler.py     # APScheduler pour automatisation
 │   ├── db/
 │   │   ├── models.py        # Modèles SQLAlchemy
 │   │   └── schema.sql       # Schéma initial
 │   ├── utils/
-│   │   └── normalization.py
+│   │   ├── normalization.py # Normalisation des données
+│   │   ├── logger.py        # Configuration Loguru
+│   │   └── cache.py         # Gestion cache Redis (optionnel)
 │   └── requirements.txt
 │
 ├── frontend/
@@ -52,20 +81,25 @@ battlefield-meta/
 
 ## 3. Étapes du pipeline data
 
-### Bronze — Ingestion
-- Scraping des pages publiques (Requests, BeautifulSoup)
-- Sauvegarde des pages HTML ou JSON bruts dans PostgreSQL
+### Bronze — Ingestion (Automatisée hebdomadairement)
+- **Scraping** des pages publiques via APScheduler (tous les lundis à 2h)
+- **Retry automatique** avec Tenacity (3 tentatives, backoff exponentiel)
+- **Logging structuré** de chaque opération (succès/échecs)
+- **Sauvegarde** des pages HTML ou JSON bruts dans PostgreSQL (table `raw_pages`)
+- **Alertes** Discord/Slack si échec après 3 tentatives
 
 ### Silver — Transformation
-- Extraction des entités principales : armes, classes, accessoires
-- Nettoyage et harmonisation des noms et unités
-- Structuration dans des tables extracted_items
+- **Extraction** des entités principales : armes, classes, accessoires
+- **Nettoyage** et harmonisation des noms et unités
+- **Validation** des données (détection anomalies)
+- **Structuration** dans des tables `extracted_items`
 
 ### Gold — Synthèse
-- Calcul d'un score normalisé pour chaque entité
-- Pondération par crédibilité et fraîcheur des sources
-- Calcul du consensus final (classement + justification)
-- Stockage dans la table consensus
+- **Calcul** d'un score normalisé pour chaque entité (échelle 0-1)
+- **Pondération** par crédibilité et fraîcheur des sources
+- **Calcul du consensus** final (classement + justification)
+- **Stockage** dans la table `consensus`
+- **Mise en cache Redis** (TTL 1h) pour performances API
 
 ---
 
@@ -138,21 +172,25 @@ Puis ouvrir :
 
 ## 9. Sécurité & éthique
 
-- Respect strict des robots.txt
-- Pas de contournement d'authentification
-- Attribution des sources avec lien direct
-- Fréquence de scraping limitée pour éviter la surcharge
-- Mise à disposition d'un contact pour demande de retrait
+- **Respect strict des robots.txt** de chaque source
+- **Pas de contournement d'authentification** ou de paywall
+- **Attribution claire des sources** avec lien direct vers l'article original
+- **Fréquence de scraping limitée** (délai minimum 2-5 sec entre requêtes)
+- **User-Agent identifiable** avec email de contact
+- **Gestion des erreurs gracieuse** (retry avec backoff exponentiel)
+- **Monitoring et alertes** pour détecter les échecs de scraping
+- **Mise à disposition d'un contact** pour demande de retrait (contact email dans .env)
 
 ## 10. Roadmap
 
-| Phase | Description | Livrables |
-|-------|-------------|-----------|
-| 0 | Initialisation projet | Repo GitHub + Docker OK |
-| 1 | MVP (1 source) | Scraping, parsing, stockage |
-| 2 | Multi-sources | Consensus pondéré |
-| 3 | Front-end | Classements & filtres |
-| 4 | Optimisation | Alertes, historiques, monétisation |
+| Phase | Description | Livrables | Stack ajoutée |
+|-------|-------------|-----------|---------------|
+| 0 | Initialisation projet | Repo GitHub + Docker + .gitignore + .env ✅ | Git, Docker |
+| 1 | MVP (1 source) | Scraping + parsing + stockage bronze/silver/gold | Python, BeautifulSoup, PostgreSQL, SQLAlchemy |
+| 2 | Multi-sources | Scraping 10 sources + consensus pondéré + retry | Tenacity, APScheduler, Loguru |
+| 3 | Front-end | API FastAPI + Next.js + classements & filtres | FastAPI, Next.js, Swagger |
+| 4 | Production | Cache Redis + monitoring Sentry + alertes Discord | Redis, Sentry, Webhooks |
+| 5 | Optimisation avancée | Historique des patchs + comparaisons temporelles + ML (optionnel) | TimescaleDB, scikit-learn |
 
 ## 11. Pitch technique (30 sec)
 
