@@ -22,7 +22,7 @@
 |-----------|-------------|---------------|
 | **Scraping** | Python + BeautifulSoup + Selenium | ✅ Parfait pour sites statiques ET dynamiques |
 | **API** | FastAPI | ✅ Rapide, moderne, autodoc Swagger |
-| **Base de données** | PostgreSQL | ✅ Robuste, relationnel, parfait pour bronze/silver/gold |
+| **Base de données** | SQL Server | ✅ Robuste, entreprise-grade, parfait pour bronze/silver/gold |
 | **ORM** | SQLAlchemy + Alembic | ✅ Standard Python, migrations faciles |
 | **Conteneurisation** | Docker + docker-compose | ✅ Portable, reproductible |
 | **Frontend** | Next.js | ✅ SEO-friendly, rapide, moderne |
@@ -137,7 +137,7 @@ Orchestration complète de l'environnement :
 
 ### 1. Tester l'environnement Docker
 ```bash
-docker-compose up -d postgres redis
+docker-compose up -d sqlserver redis
 docker-compose ps
 ```
 
@@ -148,7 +148,21 @@ touch backend/main.py
 touch backend/scraper/{sources.py,scraper.py,parser.py,consensus.py,scheduler.py}
 ```
 
-### 3. Initialiser l'environnement Python
+### 3. Installer le driver ODBC SQL Server
+```bash
+# macOS (avec Homebrew)
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+brew install msodbcsql18 mssql-tools18
+
+# Linux (Ubuntu/Debian)
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+sudo apt-get update
+sudo apt-get install -y msodbcsql18 mssql-tools18
+```
+
+### 4. Initialiser l'environnement Python
 ```bash
 cd backend
 python -m venv venv
@@ -156,7 +170,7 @@ source venv/bin/activate  # macOS/Linux
 pip install -r ../requirements.txt
 ```
 
-### 4. Tester un premier scraper
+### 5. Tester un premier scraper
 Commencer par 1 site simple (ex: PC Gamer) pour valider le concept.
 
 ---
@@ -165,10 +179,10 @@ Commencer par 1 site simple (ex: PC Gamer) pour valider le concept.
 
 | Composant | Ressources | Coût mensuel estimé |
 |-----------|-----------|---------------------|
-| **PostgreSQL** | 1 GB RAM, 10 GB stockage | $10-15 (Render/Railway) |
+| **SQL Server** | 1 GB RAM, 10 GB stockage | $10-20 (Azure SQL Database) |
 | **Backend + Redis** | 512 MB RAM | $7-10 |
 | **Frontend** | Statique | $0 (Vercel gratuit) |
-| **Total** | | **$17-25/mois** |
+| **Total** | | **$17-30/mois** |
 
 **Alternative gratuite (MVP)** :
 - Railway/Render free tier

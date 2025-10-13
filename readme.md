@@ -32,7 +32,7 @@ Intérroger les sites web hebdomadairement pour capturer les changements de mét
 ### Stack principale (MVP - Phase 1-2)
 - **Python** → scraping (Requests, BeautifulSoup, Selenium)
 - **FastAPI** → création d'une API REST légère avec autodoc Swagger
-- **PostgreSQL** → stockage structuré selon la logique bronze/silver/gold
+- **SQL Server** → stockage structuré selon la logique bronze/silver/gold
 - **SQLAlchemy / Alembic** → gestion ORM et migrations de base de données
 - **APScheduler** → automatisation et planification du scraping hebdomadaire
 - **Tenacity** → gestion des erreurs et retry automatique pour le scraping
@@ -85,7 +85,7 @@ battlefield-meta/
 - **Scraping** des pages publiques via APScheduler (tous les lundis à 2h)
 - **Retry automatique** avec Tenacity (3 tentatives, backoff exponentiel)
 - **Logging structuré** de chaque opération (succès/échecs)
-- **Sauvegarde** des pages HTML ou JSON bruts dans PostgreSQL (table `raw_pages`)
+- **Sauvegarde** des pages HTML ou JSON bruts dans SQL Server (table `raw_pages`)
 - **Alertes** Discord/Slack si échec après 3 tentatives
 
 ### Silver — Transformation
@@ -144,7 +144,7 @@ CREATE TABLE extracted_items (
 - GET /classes/top
 - GET /attachments/top
 
-L'API interroge la couche gold dans PostgreSQL.
+L'API interroge la couche gold dans SQL Server.
 
 ## 7. Front-end (Next.js)
 
@@ -172,8 +172,6 @@ Puis ouvrir :
 
 ## 9. Sécurité & éthique
 
-- **Respect strict des robots.txt** de chaque source
-- **Pas de contournement d'authentification** ou de paywall
 - **Attribution claire des sources** avec lien direct vers l'article original
 - **Fréquence de scraping limitée** (délai minimum 2-5 sec entre requêtes)
 - **User-Agent identifiable** avec email de contact
@@ -195,5 +193,5 @@ Puis ouvrir :
 ## 11. Pitch technique (30 sec)
 
 Ce projet agrège automatiquement les données de plusieurs sites Battlefield pour identifier la méta actuelle.
-Il repose sur un pipeline Python + PostgreSQL, orchestré via Docker et exposé par une API FastAPI.
+Il repose sur un pipeline Python + SQL Server, orchestré via Docker et exposé par une API FastAPI.
 Les résultats agrégés sont publiés sur un site Next.js léger, garantissant performance, transparence et respect des règles d'éthique du scraping.

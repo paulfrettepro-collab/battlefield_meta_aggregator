@@ -8,7 +8,8 @@
 # ============================================
 fastapi==0.104.1          # Framework API REST moderne
 uvicorn[standard]==0.24.0 # Serveur ASGI pour FastAPI
-pydantic==2.5.0           # Validation de données
+pydantic==2.5.0           # Validat
+ion de données
 python-multipart==0.0.6   # Support upload fichiers (optionnel)
 
 # ============================================
@@ -28,10 +29,10 @@ tenacity==8.2.3           # Retry automatique avec backoff
 # ============================================
 # DATABASE
 # ============================================
-sqlalchemy==2.0.23        # ORM pour PostgreSQL
+sqlalchemy==2.0.23        # ORM pour SQL Server
 alembic==1.12.1           # Migrations de base de données
-psycopg2-binary==2.9.9    # Driver PostgreSQL
-asyncpg==0.29.0           # Driver PostgreSQL async (performances)
+pyodbc==5.0.1             # Driver ODBC pour SQL Server
+pymssql==2.2.11           # Driver alternatif pour SQL Server (optionnel)
 
 # ============================================
 # CACHE (OPTIONNEL - PHASE 4)
