@@ -1,0 +1,134 @@
+# ============================================
+# .gitignore - Battlefield Meta Aggregator
+# ============================================
+# Ce fichier indique à Git quels fichiers/dossiers IGNORER
+# (ne pas suivre ni pousser sur GitHub)
+
+# ============================================
+# 1. FICHIERS SYSTÈME (macOS, Windows, Linux)
+# ============================================
+# Ces fichiers sont créés automatiquement par l'OS
+# et n'ont aucune valeur pour le projet
+
+.DS_Store           # Fichiers macOS (métadonnées des dossiers)
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db           # Fichiers Windows (miniatures)
+Desktop.ini         # Fichiers Windows (config dossier)
+ehthumbs.db
+
+# ============================================
+# 2. PYTHON / BACKEND
+# ============================================
+# Fichiers générés par Python qu'on ne veut pas versionner
+
+# Environnements virtuels Python
+venv/
+env/
+ENV/
+.venv/
+virtualenv/
+
+# Fichiers compilés Python
+__pycache__/        # Cache des modules Python
+*.py[cod]           # .pyc, .pyo, .pyd
+*.so                # Bibliothèques compilées
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Tests et couverture de code
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Base de données locale (si tu testes en local)
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# 3. NEXT.JS / FRONTEND
+# ============================================
+# Fichiers générés par Next.js et Node.js
+
+# Dépendances Node.js
+node_modules/       # Dossier ÉNORME avec toutes les librairies
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json   # (optionnel, certains préfèrent le garder)
+yarn.lock           # (optionnel)
+
+# Build Next.js
+.next/              # Dossier de build Next.js
+out/                # Export statique Next.js
+build/
+
+# Cache Next.js
+.cache/
+
+# ============================================
+# 4. DOCKER
+# ============================================
+# Fichiers de logs et volumes Docker (si locaux)
+
+*.log
+docker-compose.override.yml  # Surcharges locales Docker
+
+# ============================================
+# 5. VARIABLES D'ENVIRONNEMENT (SECRETS)
+# ============================================
+# ⚠️ TRÈS IMPORTANT : Ne JAMAIS pousser de secrets !
+
+.env                # Variables d'environnement (mots de passe, clés API)
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# ============================================
+# 6. ÉDITEURS / IDE
+# ============================================
+# Fichiers de configuration des éditeurs de code
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# 7. LOGS ET FICHIERS TEMPORAIRES
+# ============================================
+
+logs/
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ============================================
+# 8. DONNÉES SCRAPING (OPTIONNEL)
+# ============================================
+# Si tu veux ignorer les données brutes scrapées en local
+
+# raw_data/         # Décommenter si tu veux ignorer les données brutes
+# scraped_html/     # Décommenter si tu veux ignorer les HTML téléchargés
