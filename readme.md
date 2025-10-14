@@ -153,8 +153,9 @@ battlefield-meta/
 
 | Couche | Stockage | Tables/Conteneurs | Description |
 |--------|----------|-------------------|-------------|
-| **Data Lake** | Azure Blob / MinIO | `raw-html/`, `raw-json/`, `images/`, `videos/` | Fichiers bruts non structurés |
-| **Bronze** | SQL Server | `sources`, `raw_pages`, `datalake_files` | Métadonnées + références Data Lake |
+| **Data Lake** | MinIO | `raw-html/`, `raw-json/`, `images/`, `videos/` | Fichiers bruts non structurés |
+| **Vector DB** | ChromaDB/Qdrant | Collections embeddings | Recherche sémantique de contenu |
+| **Bronze** | SQL Server | `sources`, `crawled_pages`, `datalake_files` | Métadonnées + références Data Lake |
 | **Silver** | SQL Server | `extracted_items` | Données extraites et nettoyées |
 | **Gold** | SQL Server | `consensus` | Résultat agrégé et classé |
 
@@ -293,19 +294,26 @@ battlefield_meta_aggregator/
 ├── backend/
 │   ├── api/ (__init__.py)
 │   ├── db/ (__init__.py)
-│   ├── scraper/ (__init__.py)
-│   │   └── parsers/ (__init__.py)
+│   ├── crawler/ (__init__.py)      # Module Scrapy
+│   │   ├── items.py ✅             # Définition des items
+│   │   ├── settings.py ✅          # Configuration Scrapy
+│   │   ├── scrapy.cfg ✅           # Config projet
+│   │   └── spiders/ (__init__.py)  # Spiders à créer
 │   └── utils/ (__init__.py, datalake.py ✅)
-├── docs/ (5 fichiers de documentation ✅)
+├── docs/ (8 fichiers de documentation ✅)
+│   ├── CRAWLING_GUIDE.md ✅
+│   ├── VECTOR_DATABASE_GUIDE.md ✅
+│   ├── MIGRATION_SCRAPY_VECTOR.md ✅
+│   └── ... (5 autres guides)
 ├── frontend/ (vide, à remplir Phase 4)
 ├── scripts/ (vide, à remplir Phase 2-3)
 ├── tests/ (vide, à remplir Phase 2-4)
 ├── .env ✅
 ├── .env.example ✅
 ├── .gitignore ✅
-├── docker-compose.yml ✅
+├── docker-compose.yml ✅ (6 services: SQL, Redis, MinIO, ChromaDB, Backend, Frontend)
 ├── readme.md ✅
-└── requirements.txt ✅
+└── requirements.txt ✅ (Scrapy, ChromaDB, Qdrant, Sentence-Transformers)
 ```
 
 ---
@@ -335,8 +343,8 @@ docker-compose up -d sqlserver
 
 ### ⏳ 1.2 Création des modèles SQLAlchemy
 - [ ] Créer `backend/db/models.py` avec les tables :
-  - `sources` : Sites web scrappés (nom, URL, crédibilité)
-  - `raw_pages` : Métadonnées des pages HTML scrappées
+  - `sources` : Sites web crawlés (nom, URL, crédibilité)
+  - `crawled_pages` : Métadonnées des pages HTML crawlées
   - `datalake_files` : Index des fichiers dans le Data Lake
   - `extracted_items` : Données structurées extraites (armes, classes, stats)
   - `consensus` : Résultats finaux agrégés
@@ -361,45 +369,46 @@ docker-compose up -d sqlserver
 
 ---
 
-## Phase 2 : Premier Scraper (MVP avec 1 source) ⏳
+## Phase 2 : Premier Crawler Scrapy (MVP avec 1 source) ⏳
 
-### ⏳ 2.1 Classe de base pour les parsers
-- [ ] Créer `backend/scraper/parsers/base_parser.py`
-  - Classe abstraite `BaseParser` avec méthodes :
-    - `fetch_page()` : Télécharge une page HTML
-    - `parse()` : Méthode abstraite à implémenter par chaque parser
-    - `extract_weapons()` : Extraction des armes
-    - `extract_stats()` : Extraction des statistiques
-    - `save_to_bronze()` : Sauvegarde dans Data Lake + SQL Server
+### ⏳ 2.1 Premier Spider Scrapy (PC Gamer)
+- [ ] Créer `backend/crawler/spiders/pcgamer_spider.py`
+  - Classe `PCGamerSpider` héritant de `scrapy.Spider`
+  - Définir `start_urls` : pages à crawler
+  - Méthode `parse()` : extraction avec sélecteurs CSS
+  - Yield des items `WeaponItem` définis dans `items.py`
+  - Support JavaScript avec Scrapy-Playwright si nécessaire
 
-**Fichier à créer** : `backend/scraper/parsers/base_parser.py` (~150 lignes)
+**Fichier à créer** : `backend/crawler/spiders/pcgamer_spider.py` (~100 lignes)
 
-### ⏳ 2.2 Premier parser concret (PC Gamer)
-- [ ] Créer `backend/scraper/parsers/pcgamer_parser.py`
-  - Classe `PCGamerParser` héritant de `BaseParser`
-  - Inspection manuelle de https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build
-  - Extraction avec BeautifulSoup (sélecteurs CSS)
-  - Test d'extraction sur une page réelle
+**Commande de test** : `scrapy crawl pcgamer -o test.json`
 
-**Fichier à créer** : `backend/scraper/parsers/pcgamer_parser.py` (~100 lignes)
+### ⏳ 2.2 Pipelines de traitement
+- [ ] Créer `backend/crawler/pipelines.py`
+  - `CleaningPipeline` : Nettoyer et valider les données
+  - `DeduplicationPipeline` : Éviter les doublons (hash du contenu)
+  - `VectorStorePipeline` : Générer embeddings et sauvegarder dans ChromaDB
+  - `SQLServerPipeline` : Sauvegarder métadonnées dans SQL Server
+  - `DataLakePipeline` : Sauvegarder HTML brut dans MinIO
 
-### ⏳ 2.3 Orchestration du scraping
-- [ ] Créer `backend/scraper/orchestrator.py`
-  - Fonction `scrape_all_sources()` qui appelle chaque parser
-  - Gestion des erreurs avec `tenacity` (3 tentatives, backoff exponentiel)
-  - Logging avec `loguru`
-  - Sauvegarde HTML dans Data Lake + métadonnées dans SQL Server
+**Fichier à créer** : `backend/crawler/pipelines.py` (~200 lignes)
 
-**Fichier à créer** : `backend/scraper/orchestrator.py` (~120 lignes)
+### ⏳ 2.3 Middlewares (optionnel)
+- [ ] Créer `backend/crawler/middlewares.py`
+  - User-Agent rotation (déjà configuré dans settings.py)
+  - Proxy rotation si nécessaire
+  - Custom headers
 
-### ⏳ 2.4 Tests du scraper
-- [ ] Créer `scripts/test_scraper.py` pour tester manuellement
-- [ ] Créer `tests/test_parsers.py` avec pytest
-  - Test d'extraction sur HTML mock
-  - Test de sauvegarde dans Data Lake
-  - Test de sauvegarde des métadonnées SQL Server
+**Fichier à créer** : `backend/crawler/middlewares.py` (~50 lignes)
 
-**Validation** : Scraper capable d'extraire des données de PC Gamer et les sauvegarder
+### ⏳ 2.4 Tests du crawler
+- [ ] Créer `scripts/test_crawler.py` pour lancer un crawl manuel
+- [ ] Créer `tests/test_spiders.py` avec pytest
+  - Test du spider avec HTML mock (scrapy contracts)
+  - Test des pipelines individuellement
+  - Test de sauvegarde ChromaDB + SQL Server
+
+**Validation** : Crawler capable d'extraire des données de PC Gamer, les vectoriser et les sauvegarder
 
 ---
 
@@ -516,22 +525,23 @@ Les résultats agrégés sont publiés sur un site Next.js léger, garantissant 
                 🌐 Internet (sites Battlefield)
                           │
                           ▼
-                🕷️  Scraper Python (BeautifulSoup / Selenium/ Crawler)
+                🕷️  Crawler Scrapy (Framework professionnel)
                           │
-         ┌────────────────┴────────────────┐
-         ▼                                 ▼
- 🪣 Data Lake (MinIO / Azure Blob / Bucket S3)    🧠 Base SQL Server
- (stocke les pages brutes)            (stocke les données nettoyées)
-         │                                 │
-         └──────────────┬──────────────────┘
-                        ▼
-              ⚖️  Algorithme de Consensus
-        (compare les sources pour trouver la vérité)
-                        │
-                        ▼
-                🚀 API FastAPI (backend)
-                (donne accès aux données)
-                        │
-                        ▼
-              💻 Frontend Next.js (site web)
-      (affiche les meilleures armes et statistiques)
+         ┌────────────────┼────────────────┬─────────────────┐
+         ▼                ▼                ▼                 ▼
+ 🪣 Data Lake MinIO  🧠 SQL Server  🔍 ChromaDB        📊 Embeddings
+ (pages brutes)     (métadonnées)  (vector DB)      (semantic search)
+         │                │                │                 │
+         └────────────────┴────────────────┴─────────────────┘
+                                  ▼
+                      ⚖️  Algorithme de Consensus
+                (compare les sources pour trouver la vérité)
+                                  │
+                                  ▼
+                      🚀 API FastAPI (backend)
+                      (donne accès aux données)
+                                  │
+                                  ▼
+                    💻 Frontend React (site web)
+          (affiche les meilleures armes et statistiques)
+```
