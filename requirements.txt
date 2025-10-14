@@ -13,13 +13,26 @@ ion de données
 python-multipart==0.0.6   # Support upload fichiers (optionnel)
 
 # ============================================
-# SCRAPING
+# WEB CRAWLING (SCRAPY FRAMEWORK)
 # ============================================
-requests==2.31.0          # Requêtes HTTP simples
-beautifulsoup4==4.12.2    # Parsing HTML
+scrapy==2.11.0            # Framework de crawling professionnel
+scrapy-playwright==0.0.34 # Support JavaScript avec Playwright
+playwright==1.40.0        # Navigateur headless pour sites dynamiques
+scrapy-user-agents==0.1.1 # Rotation user-agents automatique
+scrapy-rotating-proxies==0.6.2  # Rotation proxies (optionnel)
+requests==2.31.0          # Requêtes HTTP simples (fallback)
+beautifulsoup4==4.12.2    # Parsing HTML simple
 lxml==4.9.3               # Parser rapide pour BeautifulSoup
-selenium==4.15.2          # Scraping sites JavaScript dynamiques
-webdriver-manager==4.0.1  # Gestion automatique des drivers Chrome/Firefox
+
+# ============================================
+# VECTOR DATABASE & EMBEDDINGS
+# ============================================
+chromadb==0.4.18          # Base de données vectorielle (dev)
+qdrant-client==1.7.0      # Qdrant client (production)
+sentence-transformers==2.2.2  # Génération d'embeddings locaux
+openai==1.3.7             # API OpenAI pour embeddings (optionnel)
+langchain==0.0.350        # Framework LLM pour extraction (optionnel)
+langchain-community==0.0.1  # Extensions LangChain
 
 # ============================================
 # GESTION ERREURS & RETRY

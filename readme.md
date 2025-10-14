@@ -30,12 +30,16 @@ Intérroger les sites web hebdomadairement pour capturer les changements de mét
 ## 2. Architecture technique (vue d'ensemble)
 
 ### Stack principale (MVP - Phase 1-2)
-- **Python** → scraping (Requests, BeautifulSoup, Selenium)
+- **Python 3.11+** → langage principal backend
+- **Scrapy** → framework de crawling professionnel et robuste
+- **Scrapy-Playwright** → rendu JavaScript pour sites dynamiques
 - **FastAPI** → création d'une API REST légère avec autodoc Swagger
 - **SQL Server** → stockage structuré selon la logique bronze/silver/gold
 - **SQLAlchemy / Alembic** → gestion ORM et migrations de base de données
-- **APScheduler** → automatisation et planification du scraping hebdomadaire
-- **Tenacity** → gestion des erreurs et retry automatique pour le scraping
+- **ChromaDB / Qdrant** → base de données vectorielle pour Data Lake (embeddings + recherche sémantique)
+- **OpenAI Embeddings / Sentence-Transformers** → vectorisation du contenu crawlé
+- **APScheduler** → automatisation et planification du crawling hebdomadaire
+- **Tenacity** → gestion des erreurs et retry automatique
 - **Loguru** → logging structuré et traçabilité des opérations
 - **Docker & docker-compose** → environnement portable et reproductible
 - **Next.js / React** → front-end moderne, SEO-friendly, connecté à l'API FastAPI
@@ -43,35 +47,50 @@ Intérroger les sites web hebdomadairement pour capturer les changements de mét
 
 ### Stack additionnelle (Production - Phase 3-4)
 - **Redis** → cache des résultats de consensus (amélioration performances)
-- **Azure Blob Storage / MinIO** → Data Lake pour données non structurées (HTML brut, images, vidéos)
+- **Qdrant Cloud / Pinecone** → base vectorielle en production (alternative à ChromaDB local)
+- **Azure Blob Storage / MinIO** → stockage des fichiers bruts crawlés (HTML, images, vidéos)
 - **Sentry** → monitoring des erreurs et alertes en temps réel
-- **Discord/Slack Webhook** → notifications si scraping échoue
+- **Discord/Slack Webhook** → notifications si crawling échoue
 - **GitHub Actions / Airflow** → orchestration avancée des pipelines (optionnel)
+- **LangChain** → orchestration LLM pour extraction de données complexes (optionnel)
 
 ### Structure des dossiers
 ```
 battlefield-meta/
 │
 ├── backend/
-│   ├── main.py              # Entrée FastAPI
-│   ├── scraper/
-│   │   ├── sources.py       # URLs à scraper
-│   │   ├── scraper.py       # Logique de scraping avec retry
-│   │   ├── parser.py        # Extraction et nettoyage
-│   │   ├── consensus.py     # Calcul du consensus
-│   │   └── scheduler.py     # APScheduler pour automatisation
+│   ├── main.py                    # Entrée FastAPI
+│   ├── crawler/
+│   │   ├── spiders/               # Scrapy spiders (1 par source)
+│   │   │   ├── __init__.py
+│   │   │   ├── pcgamer_spider.py
+│   │   │   ├── codmunity_spider.py
+│   │   │   └── reddit_spider.py
+│   │   ├── items.py               # Définition des items Scrapy
+│   │   ├── pipelines.py           # Pipelines de traitement
+│   │   ├── middlewares.py         # Middlewares (user-agent, delay, etc.)
+│   │   ├── settings.py            # Configuration Scrapy
+│   │   └── scrapy.cfg             # Config Scrapy
+│   ├── vectorstore/
+│   │   ├── chromadb_client.py     # Client ChromaDB/Qdrant
+│   │   ├── embeddings.py          # Génération d'embeddings
+│   │   └── search.py              # Recherche sémantique
 │   ├── db/
-│   │   ├── models.py        # Modèles SQLAlchemy
-│   │   └── schema.sql       # Schéma initial
+│   │   ├── models.py              # Modèles SQLAlchemy
+│   │   ├── connection.py          # Connexion SQL Server
+│   │   └── schema.sql             # Schéma initial
 │   ├── utils/
-│   │   ├── normalization.py # Normalisation des données
-│   │   ├── logger.py        # Configuration Loguru
-│   │   └── cache.py         # Gestion cache Redis (optionnel)
+│   │   ├── consensus.py           # Calcul du consensus
+│   │   ├── normalization.py       # Normalisation des données
+│   │   ├── scheduler.py           # APScheduler pour automatisation
+│   │   ├── logger.py              # Configuration Loguru
+│   │   ├── datalake.py            # Gestion MinIO/Azure Blob
+│   │   └── cache.py               # Gestion cache Redis (optionnel)
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── pages/
-│   │   └── index.tsx        # Page principale
+│   │   └── index.tsx              # Page principale
 │   ├── components/
 │   └── package.json
 │
@@ -82,36 +101,48 @@ battlefield-meta/
 
 ## 3. Étapes du pipeline data
 
-### Data Lake — Stockage brut (données non structurées)
-- **Stockage** des fichiers bruts dans Azure Blob Storage / MinIO
-  - HTML complet des pages scrapées
-  - Images (screenshots d'armes, patchnotes)
-  - Vidéos (tutoriels YouTube, streamers)
-  - Fichiers JSON brut (réponses API)
-  - Logs de scraping détaillés
-- **Organisation** par source et date : `/{source}/{year}/{month}/{day}/{filename}`
-- **Métadonnées** : contenu_hash, taille, URL origine, date scraping
+### Data Lake Vectorisé — Stockage intelligent (ChromaDB/Qdrant)
+- **Crawling** des pages avec Scrapy (framework professionnel)
+- **Extraction** du contenu textuel nettoyé
+- **Vectorisation** avec embeddings (OpenAI ou Sentence-Transformers)
+- **Stockage vectoriel** dans ChromaDB (dev) ou Qdrant (prod)
+  - Texte original + métadonnées (URL, date, source)
+  - Vecteurs d'embeddings pour recherche sémantique
+  - Collections organisées par source et type de contenu
+- **Stockage fichiers bruts** dans Azure Blob Storage / MinIO
+  - HTML complet des pages crawlées
+  - Images (screenshots d'armes, loadouts)
+  - Vidéos (tutoriels, gameplay)
+  - Organisation : `/{source}/{type}/{year}/{month}/{day}/{filename}`
+- **Recherche sémantique** : "meilleure arme courte portée" → trouve contenu pertinent même sans mots-clés exacts
 - **Rétention** : 6 mois pour analyse historique et ML futur
 
 ### Bronze — Ingestion (Automatisée hebdomadairement)
-- **Scraping** des pages publiques via APScheduler (tous les lundis à 2h)
+- **Crawling** des pages avec Scrapy (tous les lundis à 2h via APScheduler)
+  - Respect des robots.txt et rate limiting
+  - Support JavaScript avec Scrapy-Playwright si nécessaire
+  - Crawling parallèle de multiples sources
 - **Retry automatique** avec Tenacity (3 tentatives, backoff exponentiel)
-- **Logging structuré** de chaque opération (succès/échecs)
-- **Sauvegarde Data Lake** : fichiers bruts (HTML, JSON) dans Azure Blob / MinIO
-- **Sauvegarde SQL Server** : métadonnées dans table `raw_pages` (référence vers Data Lake)
+- **Logging structuré** de chaque opération (succès/échecs avec Loguru)
+- **Sauvegarde Data Lake vectorisé** :
+  - Texte → embeddings → ChromaDB/Qdrant
+  - Fichiers bruts (HTML, JSON, images) → Azure Blob / MinIO
+- **Sauvegarde SQL Server** : métadonnées dans table `crawled_pages` (référence vers Data Lake)
 - **Alertes** Discord/Slack si échec après 3 tentatives
 
-### Silver — Transformation
-- **Extraction** des entités principales depuis Data Lake : armes, classes, accessoires
+### Silver — Transformation & Extraction
+- **Récupération** du contenu depuis ChromaDB/Qdrant
+- **Extraction** des entités principales : armes, classes, accessoires, statistiques
 - **Nettoyage** et harmonisation des noms et unités
 - **Validation** des données (détection anomalies)
 - **Structuration** dans des tables `extracted_items` (SQL Server)
 - **Enrichissement** : possibilité d'analyser images/vidéos du Data Lake avec AI (Phase 4)
 
-### Gold — Synthèse
-- **Calcul** d'un score normalisé pour chaque entité (échelle 0-1)
-- **Pondération** par crédibilité et fraîcheur des sources
-- **Calcul du consensus** final (classement + justification)
+### Gold — Synthèse & Consensus
+- **Normalisation** : conversion des scores sur échelle 0-1
+- **Pondération** par crédibilité source et fraîcheur des données
+- **Calcul du consensus** final avec algorithme de weighted average
+- **Recherche sémantique** : utilisation de ChromaDB pour trouver contexte et justifications
 - **Stockage** dans la table `consensus` (SQL Server)
 - **Mise en cache Redis** (TTL 1h) pour performances API
 - **Export Data Lake** : résultats JSON pour analyses futures
@@ -204,7 +235,20 @@ Puis ouvrir :
 - 📝 **Planifié** : Planifié pour une phase ultérieure
 
 ---
+## 📊 Récapitulatif Global
 
+| Phase | Nom | Statut | Fichiers créés | Fichiers restants |
+|-------|-----|--------|----------------|-------------------|
+| **Phase 0** | Initialisation | ✅ **Complet** | 17/17 | 0 |
+| **Phase 1** | Infrastructure DB | 🔄 **0% (0/8)** | 0/8 | 8 |
+| **Phase 2** | Premier Scraper | ⏳ **0% (0/7)** | 0/7 | 7 |
+| **Phase 3** | Pipeline Complet | ⏳ **0% (0/5)** | 0/5 | 5 |
+| **Phase 4** | API + Frontend | 📝 **0% (0/10)** | 0/10 | 10 |
+| **Phase 5** | Production | 📝 **0% (0/5)** | 0/5 | 5 |
+| **Phase 6** | AI & Analytics | 📝 **Planifié** | 0/? | ? |
+| **TOTAL** | | **36% (17/47)** | **17/47** | **30** |
+
+---
 ## Phase 0 : Initialisation & Configuration ✅
 
 ### ✅ 0.1 Configuration Git & GitHub
@@ -451,20 +495,7 @@ docker-compose up -d sqlserver
 
 ---
 
-## 📊 Récapitulatif Global
 
-| Phase | Nom | Statut | Fichiers créés | Fichiers restants |
-|-------|-----|--------|----------------|-------------------|
-| **Phase 0** | Initialisation | ✅ **Complet** | 17/17 | 0 |
-| **Phase 1** | Infrastructure DB | 🔄 **0% (0/8)** | 0/8 | 8 |
-| **Phase 2** | Premier Scraper | ⏳ **0% (0/7)** | 0/7 | 7 |
-| **Phase 3** | Pipeline Complet | ⏳ **0% (0/5)** | 0/5 | 5 |
-| **Phase 4** | API + Frontend | 📝 **0% (0/10)** | 0/10 | 10 |
-| **Phase 5** | Production | 📝 **0% (0/5)** | 0/5 | 5 |
-| **Phase 6** | AI & Analytics | 📝 **Planifié** | 0/? | ? |
-| **TOTAL** | | **36% (17/47)** | **17/47** | **30** |
-
----
 
 ## 🚀 Prochaine Étape Recommandée
 
@@ -479,3 +510,28 @@ docker-compose up -d sqlserver
 Ce projet agrège automatiquement les données de plusieurs sites Battlefield pour identifier la méta actuelle.
 Il repose sur un pipeline Python + SQL Server, orchestré via Docker et exposé par une API FastAPI.
 Les résultats agrégés sont publiés sur un site Next.js léger, garantissant performance, transparence et respect des règles d'éthique du scraping.
+
+
+
+                🌐 Internet (sites Battlefield)
+                          │
+                          ▼
+                🕷️  Scraper Python (BeautifulSoup / Selenium/ Crawler)
+                          │
+         ┌────────────────┴────────────────┐
+         ▼                                 ▼
+ 🪣 Data Lake (MinIO / Azure Blob / Bucket S3)    🧠 Base SQL Server
+ (stocke les pages brutes)            (stocke les données nettoyées)
+         │                                 │
+         └──────────────┬──────────────────┘
+                        ▼
+              ⚖️  Algorithme de Consensus
+        (compare les sources pour trouver la vérité)
+                        │
+                        ▼
+                🚀 API FastAPI (backend)
+                (donne accès aux données)
+                        │
+                        ▼
+              💻 Frontend Next.js (site web)
+      (affiche les meilleures armes et statistiques)

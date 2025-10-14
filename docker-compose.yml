@@ -69,7 +69,27 @@ services:
       retries: 3
 
   # ============================================
-  # BACKEND API (FASTAPI + SCRAPER)
+  # BASE DE DONNÉES VECTORIELLE - CHROMADB
+  # ============================================
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: battlefield_chromadb
+    restart: unless-stopped
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: ${CHROMA_TELEMETRY:-FALSE}
+    volumes:
+      - chromadb_data:/chroma/chroma
+    ports:
+      - "8001:8000"      # Port ChromaDB (8001 pour éviter conflit avec FastAPI)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # BACKEND API (FASTAPI + CRAWLER SCRAPY)
   # ============================================
   backend:
     build:
@@ -80,12 +100,18 @@ services:
     environment:
       DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd}@sqlserver:1433/${DB_NAME:-battlefield_meta}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
       REDIS_URL: redis://redis:6379/0
+      CHROMADB_HOST: chromadb
+      CHROMADB_PORT: 8000
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./backend:/app
-      - scraper_logs:/app/logs
+      - crawler_logs:/app/logs
     ports:
       - "8000:8000"
     depends_on:
@@ -94,6 +120,8 @@ services:
       redis:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      chromadb:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -128,7 +156,9 @@ volumes:
     driver: local
   minio_data:
     driver: local
-  scraper_logs:
+  chromadb_data:
+    driver: local
+  crawler_logs:
     driver: local
 
 # ============================================
