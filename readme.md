@@ -1,18 +1,88 @@
-# Battlefield Meta Aggregator
+# 🎮 Battlefield Meta Aggregator
 
-## 1. Idée métier
-
-Ce projet vise à construire un site web public qui agrège les données de plusieurs sites communautaires Battlefield 6 afin de répondre à une question simple :
-> « Quelle est la méta actuelle ? »
-> (armes les plus performantes, classes dominantes, classes avec armes dominantes meilleurs accessoires par armes, mode de jeu le plus joué.)
-
-L'objectif est de collecter, normaliser et combiner les informations provenant de plusieurs sources fiables, puis de calculer un consensus global basé sur ces données.
-Automatiser ce flux de données permettrait de fournir des mises à jour rapides et précises de la méta, aidant ainsi les joueurs à optimiser leurs choix d'équipement et de stratégie en temps réel.
-Intérroger les sites web hebdomadairement pour capturer les changements de méta après chaque patch et vérifier si il y a de l'ajout de contenu pertinent (découverte d'une nouvelle meta par un joueur qui partage son expérience par exemple)
+**Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
 ---
-## 1.1 idée de site web qui récupère de la données sur battelfied 6 :
-## 🌍 Sources Battlefield 6 – Guides, Méta & Loadouts
+
+## 🧠 Problématique
+
+**Comment aider les joueurs de Battlefield à améliorer leur performance grâce à l'analyse multi-source de données issues de la communauté (statistiques, loadouts, cartes, métas) ?**
+
+L'objectif est de construire un **pipeline ELT complet et automatisé** pour :
+- ✅ **Extraire** des données de performance et de stratégie issues de plusieurs sources (sites communautaires, forums, guides)
+- ✅ **Stocker** les données brutes dans MinIO (Data Lake Bronze)
+- ✅ **Charger** dans BigQuery pour analyse et transformation
+- ✅ **Transformer** avec DBT Core (modèles Bronze → Silver → Gold)
+- ✅ **Présenter** via une interface Streamlit interactive et en temps réel
+
+**Mise à jour automatique** : Pipeline orchestré par Apache Airflow (runs quotidiens), 100% open source
+
+---
+
+## 🏗️ Architecture du pipeline ELT
+
+```
+            +-------------------+
+            |  Sites communaut. |
+            |  PC Gamer, Reddit |
+            |  Gam3s, Skycoach  |
+            +--------+----------+
+                     |
+                     | Scrapy Crawlers
+                     ▼
+            +-------------------+
+            |   Bronze Layer    |  ← MinIO (Raw HTML/JSON)
+            |   (Data Lake)     |     Stockage fichiers bruts
+            +--------+----------+
+                     |
+                     | Load vers BigQuery
+                     ▼
+            +-------------------+
+            |   Silver Layer    |  ← BigQuery + DBT Core
+            |  (Nettoyé, typé)  |     Transformation SQL
+            +--------+----------+
+                     |
+                     | Modélisation DBT
+                     ▼
+            +-------------------+
+            |    Gold Layer     |  ← BigQuery (Tables finales)
+            | (KPI, Consensus)  |     Prêt pour dashboard
+            +--------+----------+
+                     |
+                     | Requêtes SQL
+                     ▼
+            +-------------------+
+            |  Dashboard UI     |  ← Streamlit
+            |  (Visualisation)  |     Interface interactive
+            +-------------------+
+                     ▲
+                     |
+            +-------------------+
+            | Apache Airflow    |  ← Orchestrateur
+            | (Automatisation)  |     DAGs quotidiens
+            +-------------------+
+```
+
+---
+
+## ⚙️ Stack Technique (100% Open Source)
+
+| Composant         | Technologie                    | Rôle                                                          |
+|-------------------|--------------------------------|---------------------------------------------------------------|
+| **Extraction**    | `Scrapy` + `Playwright`        | Crawler les sites Battlefield (PC Gamer, Reddit, forums)      |
+| **Orchestration** | `Apache Airflow`               | Planification DAGs, relances auto, logs, monitoring           |
+| **Storage Bronze**| `MinIO` (S3-compatible)        | Data Lake pour fichiers bruts (HTML, JSON, images)            |
+| **Data Warehouse**| `Google BigQuery`              | Entrepôt de données cloud, SQL performant, gratuit jusqu'à 1TB|
+| **Transformation**| `DBT Core`                     | Modèles SQL (Bronze → Silver → Gold), tests, documentation   |
+| **Visualisation** | `Streamlit`                    | Dashboard interactif Python, filtres dynamiques, temps réel   |
+| **IA (optionnel)**| `Langchain` + `OpenAI API`     | Génération insights, résumés stratégiques, recherche sémantique|
+| **Containerisation**| `Docker` + `docker-compose`  | Environnement reproductible (Airflow, MinIO, DBT)            |
+| **Versioning**    | `Git` + `GitHub`               | Code versionné, CI/CD GitHub Actions                          |
+---
+
+## 🌍 Sources de données Battlefield 6
+
+Les données seront extraites quotidiennement des sources suivantes :
 
 | Nom du site | Type de contenu | Lien |
 |--------------|----------------|------|
@@ -27,521 +97,564 @@ Intérroger les sites web hebdomadairement pour capturer les changements de mét
 | Epic Games Blog | Guides officiels (snipers, armes, mécaniques du jeu). | [https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6](https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6) |
 | Reddit /r/Battlefield6 | Méta communautaire, retours directs des joueurs. | [https://www.reddit.com/r/Battlefield6/](https://www.reddit.com/r/Battlefield6/) |
 
-## 2. Architecture technique (vue d'ensemble)
+| Reddit /r/Battlefield6 | Méta communautaire, retours directs des joueurs. | [https://www.reddit.com/r/Battlefield6/](https://www.reddit.com/r/Battlefield6/) |
 
-### Stack principale (MVP - Phase 1-2)
-- **Python 3.11+** → langage principal backend
-- **Scrapy** → framework de crawling professionnel et robuste
-- **Scrapy-Playwright** → rendu JavaScript pour sites dynamiques
-- **FastAPI** → création d'une API REST légère avec autodoc Swagger
-- **SQL Server** → stockage structuré selon la logique bronze/silver/gold
-- **SQLAlchemy / Alembic** → gestion ORM et migrations de base de données
-- **ChromaDB / Qdrant** → base de données vectorielle pour Data Lake (embeddings + recherche sémantique)
-- **OpenAI Embeddings / Sentence-Transformers** → vectorisation du contenu crawlé
-- **APScheduler** → automatisation et planification du crawling hebdomadaire
-- **Tenacity** → gestion des erreurs et retry automatique
-- **Loguru** → logging structuré et traçabilité des opérations
-- **Docker & docker-compose** → environnement portable et reproductible
-- **Next.js / React** → front-end moderne, SEO-friendly, connecté à l'API FastAPI
-- **GitHub Copilot + VS Code** → écriture assistée et automatisée du code
+**Fréquence de crawling** : Quotidienne (via Airflow DAG), avec respect des `robots.txt` et rate limiting.
 
-### Stack additionnelle (Production - Phase 3-4)
-- **Redis** → cache des résultats de consensus (amélioration performances)
-- **Qdrant Cloud / Pinecone** → base vectorielle en production (alternative à ChromaDB local)
-- **Azure Blob Storage / MinIO** → stockage des fichiers bruts crawlés (HTML, images, vidéos)
-- **Sentry** → monitoring des erreurs et alertes en temps réel
-- **Discord/Slack Webhook** → notifications si crawling échoue
-- **GitHub Actions / Airflow** → orchestration avancée des pipelines (optionnel)
-- **LangChain** → orchestration LLM pour extraction de données complexes (optionnel)
+---
 
-### Structure des dossiers
+## 🧩 Fonctionnalités du pipeline
+
+### ✅ **Phase 1 : Extraction (Bronze Layer)**
+- Scrapy spiders pour crawler automatiquement les 10 sources
+- Support JavaScript avec Playwright pour sites dynamiques
+- Sauvegarde fichiers bruts dans MinIO :
+  - HTML des pages crawlées
+  - JSON structuré (loadouts, stats)
+  - Images (screenshots d'armes)
+- Métadonnées : URL, date crawl, source, hash pour déduplication
+
+### ✅ **Phase 2 : Chargement dans BigQuery (Silver Layer)**
+- Upload automatique des JSON de MinIO vers BigQuery
+- Tables partitionnées par date de crawl
+- Schémas définis (armes, loadouts, classes, cartes)
+- Nettoyage et typage avec DBT Core :
+  - Suppression doublons
+  - Normalisation noms d'armes (PW7A2 = MP7)
+  - Conversion métadonnées (tier S → 1.0, A → 0.8)
+
+### ✅ **Phase 3 : Transformation (Gold Layer)**
+- Modèles DBT pour agrégations :
+  - **Consensus méta** : Score pondéré par source et fraîcheur
+  - **Top armes** par classe, carte, mode de jeu
+  - **Loadouts recommandés** avec accessoires
+  - **Taux de victoire** par stratégie
+- Tests automatiques DBT (données cohérentes, pas de NULL)
+- Documentation auto-générée des modèles
+
+### ✅ **Phase 4 : Visualisation (Streamlit)**
+- Dashboard interactif avec :
+  - 📊 Graphiques top armes par patch
+  - 🎯 Filtres : classe, carte, mode de jeu
+  - 📈 Évolution méta dans le temps
+  - 🔗 Liens vers sources originales
+- Mise à jour automatique quotidienne (connecté à BigQuery)
+- Déployable sur Streamlit Cloud (gratuit)
+
+### 🔜 **Phase 5 : IA & Insights (Optionnel)**
+- Langchain + OpenAI pour :
+  - Résumés automatiques des stratégies gagnantes
+  - Recommandations personnalisées par style de jeu
+  - Recherche sémantique dans les forums
+  - Génération de patch notes synthétiques
+
+---
+
+## 📊 Exemple de KPI produits (Gold Layer)
+
+| Carte      | Classe top | Victoire % | Loadout recommandé              | Score Meta |
+|------------|------------|------------|----------------------------------|------------|
+| Manifest   | Médecin    | 62.4%      | M5A3 + Smoke + Defibrillator    | 4.5 / 5    |
+| Orbital    | Ingénieur  | 58.1%      | PKP-BP + Drone Repair           | 4.2 / 5    |
+| Hourglass  | Assaut     | 55.3%      | AC-42 + Frag Grenade            | 4.1 / 5    |
+
+**Calcul du Score Meta** :
+```sql
+-- DBT Model : gold_weapon_consensus.sql
+SELECT 
+  weapon_name,
+  AVG(normalized_score) * 
+  AVG(source_credibility) * 
+  AVG(freshness_weight) AS meta_score
+FROM {{ ref('silver_weapons') }}
+GROUP BY weapon_name
+ORDER BY meta_score DESC
 ```
-battlefield-meta/
+
+---
+
+## 🔁 Pipeline Airflow - DAG quotidien
+
+```python
+# airflow/dags/battlefield_meta_pipeline.py
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+
+default_args = {
+    'owner': 'paul_frette',
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),
+}
+
+with DAG(
+    dag_id='battlefield_meta_pipeline',
+    default_args=default_args,
+    description='Pipeline ELT quotidien Battlefield Meta',
+    schedule='0 2 * * *',  # Tous les jours à 2h du matin
+    start_date=datetime(2025, 10, 1),
+    catchup=False,
+) as dag:
+    
+    # Task 1 : Extraction avec Scrapy
+    extract_pcgamer = BashOperator(
+        task_id='extract_pcgamer',
+        bash_command='scrapy crawl pcgamer -o /data/bronze/pcgamer_{{ ds }}.json'
+    )
+    
+    extract_reddit = BashOperator(
+        task_id='extract_reddit',
+        bash_command='scrapy crawl reddit -o /data/bronze/reddit_{{ ds }}.json'
+    )
+    
+    # Task 2 : Upload vers MinIO
+    upload_to_minio = PythonOperator(
+        task_id='upload_to_minio',
+        python_callable=upload_files_to_minio,
+    )
+    
+    # Task 3 : Load dans BigQuery
+    load_to_bigquery = BashOperator(
+        task_id='load_to_bigquery',
+        bash_command='python scripts/load_bigquery.py --date {{ ds }}'
+    )
+    
+    # Task 4 : DBT Transformation
+    dbt_run = BashOperator(
+        task_id='dbt_run',
+        bash_command='cd dbt && dbt run --models silver gold'
+    )
+    
+    dbt_test = BashOperator(
+        task_id='dbt_test',
+        bash_command='cd dbt && dbt test'
+    )
+    
+    # Task 5 : Refresh Dashboard Streamlit (optionnel)
+    refresh_dashboard = PythonOperator(
+        task_id='refresh_dashboard',
+        python_callable=trigger_streamlit_refresh,
+    )
+    
+    # Définir les dépendances
+    [extract_pcgamer, extract_reddit] >> upload_to_minio
+    upload_to_minio >> load_to_bigquery
+    load_to_bigquery >> dbt_run >> dbt_test
+    dbt_test >> refresh_dashboard
+```
+
+---
+
+## 📁 Structure du projet (mise à jour)
+
+```
+battlefield_meta_aggregator/
 │
-├── backend/
-│   ├── main.py                    # Entrée FastAPI
-│   ├── crawler/
-│   │   ├── spiders/               # Scrapy spiders (1 par source)
-│   │   │   ├── __init__.py
-│   │   │   ├── pcgamer_spider.py
-│   │   │   ├── codmunity_spider.py
-│   │   │   └── reddit_spider.py
-│   │   ├── items.py               # Définition des items Scrapy
-│   │   ├── pipelines.py           # Pipelines de traitement
-│   │   ├── middlewares.py         # Middlewares (user-agent, delay, etc.)
-│   │   ├── settings.py            # Configuration Scrapy
-│   │   └── scrapy.cfg             # Config Scrapy
-│   ├── vectorstore/
-│   │   ├── chromadb_client.py     # Client ChromaDB/Qdrant
-│   │   ├── embeddings.py          # Génération d'embeddings
-│   │   └── search.py              # Recherche sémantique
-│   ├── db/
-│   │   ├── models.py              # Modèles SQLAlchemy
-│   │   ├── connection.py          # Connexion SQL Server
-│   │   └── schema.sql             # Schéma initial
-│   ├── utils/
-│   │   ├── consensus.py           # Calcul du consensus
-│   │   ├── normalization.py       # Normalisation des données
-│   │   ├── scheduler.py           # APScheduler pour automatisation
-│   │   ├── logger.py              # Configuration Loguru
-│   │   ├── datalake.py            # Gestion MinIO/Azure Blob
-│   │   └── cache.py               # Gestion cache Redis (optionnel)
+├── airflow/                    ← Apache Airflow
+│   ├── dags/
+│   │   └── battlefield_pipeline.py
+│   ├── plugins/
+│   └── logs/
+│
+├── dbt/                        ← DBT Core (Transformations)
+│   ├── models/
+│   │   ├── bronze/             ← Raw data from MinIO
+│   │   │   └── bronze_crawled_pages.sql
+│   │   ├── silver/             ← Cleaned & typed data
+│   │   │   ├── silver_weapons.sql
+│   │   │   ├── silver_loadouts.sql
+│   │   │   └── silver_classes.sql
+│   │   └── gold/               ← Business metrics
+│   │       ├── gold_weapon_consensus.sql
+│   │       ├── gold_top_loadouts.sql
+│   │       └── gold_win_rates.sql
+│   ├── tests/
+│   ├── macros/
+│   ├── dbt_project.yml
+│   └── profiles.yml            ← BigQuery connection
+│
+├── extract/                    ← Scrapy crawlers
+│   ├── spiders/
+│   │   ├── pcgamer_spider.py
+│   │   ├── reddit_spider.py
+│   │   ├── skycoach_spider.py
+│   │   └── gam3s_spider.py
+│   ├── items.py
+│   ├── pipelines.py
+│   ├── settings.py
+│   └── scrapy.cfg
+│
+├── scripts/                    ← Utilitaires Python
+│   ├── load_bigquery.py        ← Upload MinIO → BigQuery
+│   ├── test_minio.py
+│   └── test_bigquery.py
+│
+├── dashboard/                  ← Streamlit App
+│   ├── app.py                  ← Application principale
+│   ├── pages/
+│   │   ├── 1_📊_Top_Weapons.py
+│   │   ├── 2_🎯_Loadouts.py
+│   │   └── 3_📈_Trends.py
 │   └── requirements.txt
 │
-├── frontend/
-│   ├── pages/
-│   │   └── index.tsx              # Page principale
-│   ├── components/
-│   └── package.json
+├── data/                       ← Données locales (dev)
+│   ├── bronze/
+│   ├── silver/
+│   └── gold/
 │
-├── docker-compose.yml
-├── .env
+├── docker-compose.yml          ← Airflow + MinIO + DBT
+├── requirements.txt            ← Dépendances Python
+├── .env                        ← Variables d'environnement
+├── .gitignore
 └── README.md
 ```
 
-## 3. Étapes du pipeline data
-
-### Data Lake Vectorisé — Stockage intelligent (ChromaDB/Qdrant)
-- **Crawling** des pages avec Scrapy (framework professionnel)
-- **Extraction** du contenu textuel nettoyé
-- **Vectorisation** avec embeddings (OpenAI ou Sentence-Transformers)
-- **Stockage vectoriel** dans ChromaDB (dev) ou Qdrant (prod)
-  - Texte original + métadonnées (URL, date, source)
-  - Vecteurs d'embeddings pour recherche sémantique
-  - Collections organisées par source et type de contenu
-- **Stockage fichiers bruts** dans Azure Blob Storage / MinIO
-  - HTML complet des pages crawlées
-  - Images (screenshots d'armes, loadouts)
-  - Vidéos (tutoriels, gameplay)
-  - Organisation : `/{source}/{type}/{year}/{month}/{day}/{filename}`
-- **Recherche sémantique** : "meilleure arme courte portée" → trouve contenu pertinent même sans mots-clés exacts
-- **Rétention** : 6 mois pour analyse historique et ML futur
-
-### Bronze — Ingestion (Automatisée hebdomadairement)
-- **Crawling** des pages avec Scrapy (tous les lundis à 2h via APScheduler)
-  - Respect des robots.txt et rate limiting
-  - Support JavaScript avec Scrapy-Playwright si nécessaire
-  - Crawling parallèle de multiples sources
-- **Retry automatique** avec Tenacity (3 tentatives, backoff exponentiel)
-- **Logging structuré** de chaque opération (succès/échecs avec Loguru)
-- **Sauvegarde Data Lake vectorisé** :
-  - Texte → embeddings → ChromaDB/Qdrant
-  - Fichiers bruts (HTML, JSON, images) → Azure Blob / MinIO
-- **Sauvegarde SQL Server** : métadonnées dans table `crawled_pages` (référence vers Data Lake)
-- **Alertes** Discord/Slack si échec après 3 tentatives
-
-### Silver — Transformation & Extraction
-- **Récupération** du contenu depuis ChromaDB/Qdrant
-- **Extraction** des entités principales : armes, classes, accessoires, statistiques
-- **Nettoyage** et harmonisation des noms et unités
-- **Validation** des données (détection anomalies)
-- **Structuration** dans des tables `extracted_items` (SQL Server)
-- **Enrichissement** : possibilité d'analyser images/vidéos du Data Lake avec AI (Phase 4)
-
-### Gold — Synthèse & Consensus
-- **Normalisation** : conversion des scores sur échelle 0-1
-- **Pondération** par crédibilité source et fraîcheur des données
-- **Calcul du consensus** final avec algorithme de weighted average
-- **Recherche sémantique** : utilisation de ChromaDB pour trouver contexte et justifications
-- **Stockage** dans la table `consensus` (SQL Server)
-- **Mise en cache Redis** (TTL 1h) pour performances API
-- **Export Data Lake** : résultats JSON pour analyses futures
-
 ---
 
-## 4. Modèle de données (simplifié)
+## 2. Architecture technique (vue d'ensemble)
 
-| Couche | Stockage | Tables/Conteneurs | Description |
-|--------|----------|-------------------|-------------|
-| **Data Lake** | MinIO | `raw-html/`, `raw-json/`, `images/`, `videos/` | Fichiers bruts non structurés |
-| **Vector DB** | ChromaDB/Qdrant | Collections embeddings | Recherche sémantique de contenu |
-| **Bronze** | SQL Server | `sources`, `crawled_pages`, `datalake_files` | Métadonnées + références Data Lake |
-| **Silver** | SQL Server | `extracted_items` | Données extraites et nettoyées |
-| **Gold** | SQL Server | `consensus` | Résultat agrégé et classé |
-
-### Exemple de structure
-```sql
-CREATE TABLE extracted_items (
-  id SERIAL PRIMARY KEY,
-  source_id INT,
-  scraped_at TIMESTAMP,
-  game_patch VARCHAR(50),
-  entity_type VARCHAR(50),
-  entity_name VARCHAR(100),
-  metric_name VARCHAR(100),
-  metric_value FLOAT,
-  evidence_url TEXT
-);
-```
-
-## 5. Méthode de consensus (MVP)
-
-1. Standardiser les métriques sur une échelle 0–1 (ex. taux de victoire, précision, pick rate)
-2. Pondérer selon :
-   - Crédibilité de la source
-   - Fraîcheur de la donnée
-3. Calculer le score final moyen par entité
-4. Classer et afficher les 10 meilleures armes
-
-## 6. API REST (FastAPI)
-
-### Endpoints principaux
-- GET /weapons/top
-- GET /weapons/{weapon_name}
-- GET /classes/top
-- GET /attachments/top
-
-L'API interroge la couche gold dans SQL Server.
-
-## 7. Front-end (Next.js)
-
-Affiche les classements et rationales de consensus :
-- Page principale : top 10 par patch
-- Filtres : arme, classe, accessoire
-- Lien vers les sources originales (evidence_url)
-
-## 8. Déploiement et exécution
-
-### Pré-requis
-- Docker & docker-compose installés
-- Clé API (facultative si tu utilises des sources ouvertes)
-
-### Lancement
-```bash
-git clone https://github.com/paulfrette/battlefield-meta.git
-cd battlefield-meta
-docker-compose up --build
-```
-
-Puis ouvrir :
-- API : http://localhost:8000/docs
-- Web app : http://localhost:3000
-- MinIO Console (Data Lake) : http://localhost:9001
-
-## 9. Sécurité & éthique
-
-- **Attribution claire des sources** avec lien direct vers l'article original
-- **Fréquence de scraping limitée** (délai minimum 2-5 sec entre requêtes)
-- **User-Agent identifiable** avec email de contact
-- **Gestion des erreurs gracieuse** (retry avec backoff exponentiel)
-- **Monitoring et alertes** pour détecter les échecs de scraping
-- **Mise à disposition d'un contact** pour demande de retrait (contact email dans .env)
-
-## 10. Roadmap & Étapes Détaillées
+### Stack principale (MVP - Phase 1-2)
+## 🚀 Roadmap simplifiée & Étapes
 
 ### 📋 Légende des statuts
-- ✅ **Validé et complet** : Étape terminée et testée
-- 🔄 **En cours** : En cours de développement
-- ⏳ **À faire** : Non démarré, prochaine étape
-- 📝 **Planifié** : Planifié pour une phase ultérieure
+- ✅ **Complet** : Terminé et testé
+- 🔄 **En cours** : En développement
+- ⏳ **À faire** : Prochaine étape
+- 📝 **Planifié** : Phase ultérieure
 
 ---
+
 ## 📊 Récapitulatif Global
 
-| Phase | Nom | Statut | Fichiers créés | Fichiers restants |
-|-------|-----|--------|----------------|-------------------|
-| **Phase 0** | Initialisation | ✅ **Complet** | 17/17 | 0 |
-| **Phase 1** | Infrastructure DB | 🔄 **0% (0/8)** | 0/8 | 8 |
-| **Phase 2** | Premier Scraper | ⏳ **0% (0/7)** | 0/7 | 7 |
-| **Phase 3** | Pipeline Complet | ⏳ **0% (0/5)** | 0/5 | 5 |
-| **Phase 4** | API + Frontend | 📝 **0% (0/10)** | 0/10 | 10 |
-| **Phase 5** | Production | 📝 **0% (0/5)** | 0/5 | 5 |
-| **Phase 6** | AI & Analytics | 📝 **Planifié** | 0/? | ? |
-| **TOTAL** | | **36% (17/47)** | **17/47** | **30** |
-
----
-## Phase 0 : Initialisation & Configuration ✅
-
-### ✅ 0.1 Configuration Git & GitHub
-- [x] Initialisation du repository Git local
-- [x] Connexion au repository GitHub distant (`paulfrettepro-collab/battlefield_meta_aggregator`)
-- [x] Configuration des branches (sandbox, staging, main)
-- [x] Premier commit et push
-
-**Commandes exécutées** :
-```bash
-git init
-git remote add origin https://github.com/paulfrettepro-collab/battlefield_meta_aggregator.git
-git branch -M sandbox
-git add .
-git commit -m "Initial commit"
-git push -u origin sandbox
-```
-
-### ✅ 0.2 Fichiers de configuration
-- [x] `.gitignore` créé avec patterns Python/Node.js/Docker
-- [x] `.env.example` créé avec template de variables
-- [x] `.env` créé avec valeurs réelles (non committé)
-- [x] `requirements.txt` créé avec 40+ dépendances Python
-- [x] `docker-compose.yml` créé avec 5 services (SQL Server, Redis, MinIO, Backend, Frontend)
-
-### ✅ 0.3 Documentation
-- [x] `readme.md` créé avec spécifications complètes (ce fichier)
-- [x] `docs/DATA_LAKE_GUIDE.md` créé - Guide du Data Lake
-- [x] `docs/SQL_SERVER_SETUP.md` créé - Setup SQL Server
-- [x] `docs/STACK_ANALYSIS.md` créé - Analyse technique
-- [x] `docs/PROJECT_STRUCTURE.md` créé - Arborescence détaillée
-- [x] `docs/FILES_EXPLANATION.md` créé - Explication de chaque fichier
-
-### ✅ 0.4 Structure du projet
-- [x] Dossiers créés : `/backend`, `/frontend`, `/scripts`, `/tests`, `/docs`
-- [x] Modules Python initialisés avec `__init__.py`
-- [x] Module Data Lake créé : `backend/utils/datalake.py` (150+ lignes, complet)
-
-**Structure actuelle** :
-```
-battlefield_meta_aggregator/
-├── backend/
-│   ├── api/ (__init__.py)
-│   ├── db/ (__init__.py)
-│   ├── crawler/ (__init__.py)      # Module Scrapy
-│   │   ├── items.py ✅             # Définition des items
-│   │   ├── settings.py ✅          # Configuration Scrapy
-│   │   ├── scrapy.cfg ✅           # Config projet
-│   │   └── spiders/ (__init__.py)  # Spiders à créer
-│   └── utils/ (__init__.py, datalake.py ✅)
-├── docs/ (8 fichiers de documentation ✅)
-│   ├── CRAWLING_GUIDE.md ✅
-│   ├── VECTOR_DATABASE_GUIDE.md ✅
-│   ├── MIGRATION_SCRAPY_VECTOR.md ✅
-│   └── ... (5 autres guides)
-├── frontend/ (vide, à remplir Phase 4)
-├── scripts/ (vide, à remplir Phase 2-3)
-├── tests/ (vide, à remplir Phase 2-4)
-├── .env ✅
-├── .env.example ✅
-├── .gitignore ✅
-├── docker-compose.yml ✅ (6 services: SQL, Redis, MinIO, ChromaDB, Backend, Frontend)
-├── readme.md ✅
-└── requirements.txt ✅ (Scrapy, ChromaDB, Qdrant, Sentence-Transformers)
-```
+| Phase | Nom | Statut | Objectif |
+|-------|-----|--------|----------|
+| **Phase 0** | Initialisation | ✅ **Complet** | Structure + Git + MinIO |
+| **Phase 1** | Extraction (Bronze) | 🔄 **50%** | Scrapy spiders fonctionnels |
+| **Phase 2** | BigQuery + DBT | ⏳ **0%** | Setup DWH + Transformations |
+| **Phase 3** | Airflow | ⏳ **0%** | Orchestration automatique |
+| **Phase 4** | Streamlit | ⏳ **0%** | Dashboard interactif |
+| **Phase 5** | Production | 📝 **Planifié** | Déploiement cloud |
 
 ---
 
-## Phase 1 : Infrastructure Base de Données 🔄
+## Phase 0 : Initialisation ✅
 
-### ⏳ 1.1 Installation SQL Server
-- [ ] Installer ODBC Driver 18 pour SQL Server (macOS/Linux/Windows)
-- [ ] Tester connexion avec `pyodbc`
-- [ ] Configurer SQL Server dans Docker (`docker-compose up -d sqlserver`)
+### ✅ 0.1 Structure du projet
+- [x] Repository Git configuré
+- [x] Branches (sandbox, main)
+- [x] Structure dossiers (extract/, dbt/, airflow/, dashboard/)
+- [x] .gitignore + README.md
 
-**Documentation** : Suivre `docs/SQL_SERVER_SETUP.md`
+### ✅ 0.2 MinIO (Data Lake)
+- [x] Docker-compose avec MinIO
+- [x] Scripts Python pour upload/download
+- [x] Bucket `battlefield-bronze` créé
+
+### ✅ 0.3 Premier test crawler
+- [x] Spider PC Gamer fonctionnel
+- [x] Extraction loadout PW7A2 réussie
+- [x] Sauvegarde JSON locale
+
+---
+
+## Phase 1 : Extraction (Bronze Layer) 🔄
+
+### 🔄 1.1 Scrapy Spiders complets
+- [x] `pcgamer_spider.py` : Extrait loadouts et guides
+- [ ] `reddit_spider.py` : Posts /r/Battlefield6
+- [ ] `skycoach_spider.py` : Guides loadouts
+- [ ] `gam3s_spider.py` : Tier lists
+- [ ] `beebom_spider.py` : Best weapons guides
+
+**Commande** : `scrapy crawl pcgamer -o data/bronze/pcgamer_2025-10-15.json`
+
+### ⏳ 1.2 Pipeline MinIO
+- [ ] Script `upload_to_minio.py` : Upload automatique JSON → MinIO
+- [ ] Organisation par date : `/bronze/pcgamer/2025/10/15/data.json`
+- [ ] Métadonnées : source, date, hash
+- [ ] Tests unitaires
+
+**Fichiers à créer** : 
+- `scripts/upload_to_minio.py`
+- `tests/test_minio_upload.py`
+
+### ⏳ 1.3 Items Scrapy structurés
+- [ ] Définir `WeaponItem` (nom, type, stats, tier)
+- [ ] Définir `LoadoutItem` (arme, accessoires, classe)
+- [ ] Définir `MetaSnapshotItem` (source, date, patch)
+- [ ] Validation des données (required fields)
+
+**Fichier** : `extract/items.py`
+
+---
+
+## Phase 2 : BigQuery + DBT ⏳
+
+### ⏳ 2.1 Setup BigQuery
+- [ ] Créer projet Google Cloud (gratuit jusqu'à 1TB/mois)
+- [ ] Créer dataset `battlefield_meta`
+- [ ] Configurer authentification (service account JSON)
+- [ ] Tester connexion Python
 
 **Commandes** :
 ```bash
-# macOS (Homebrew)
-brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
-brew update
-brew install msodbcsql18 mssql-tools18
+# Créer service account
+gcloud iam service-accounts create battlefield-etl
 
-# Vérifier installation
-odbcinst -j
-
-# Démarrer SQL Server
-docker-compose up -d sqlserver
+# Télécharger clé JSON
+gcloud iam service-accounts keys create key.json \
+  --iam-account=battlefield-etl@PROJECT_ID.iam.gserviceaccount.com
 ```
 
-### ⏳ 1.2 Création des modèles SQLAlchemy
-- [ ] Créer `backend/db/models.py` avec les tables :
-  - `sources` : Sites web crawlés (nom, URL, crédibilité)
-  - `crawled_pages` : Métadonnées des pages HTML crawlées
-  - `datalake_files` : Index des fichiers dans le Data Lake
-  - `extracted_items` : Données structurées extraites (armes, classes, stats)
-  - `consensus` : Résultats finaux agrégés
-- [ ] Créer `backend/db/connection.py` pour gérer la connexion SQL Server
+### ⏳ 2.2 Load MinIO → BigQuery
+- [ ] Script Python `load_bigquery.py`
+- [ ] Lire JSON depuis MinIO
+- [ ] Upload vers BigQuery (tables partitionnées par date)
+- [ ] Gestion erreurs et retry
 
-**Fichier à créer** : `backend/db/models.py` (~200 lignes)
+**Tables BigQuery créées** :
+- `bronze_crawled_pages` (raw JSON)
+- `bronze_weapons` (armes extraites)
+- `bronze_loadouts` (loadouts extraits)
 
-### ⏳ 1.3 Migrations Alembic
-- [ ] Initialiser Alembic : `alembic init backend/db/migrations`
-- [ ] Configurer `alembic.ini` avec la connexion SQL Server
-- [ ] Créer la première migration : `alembic revision --autogenerate -m "Initial schema"`
-- [ ] Appliquer la migration : `alembic upgrade head`
+### ⏳ 2.3 DBT Core Setup
+- [ ] Installer DBT : `pip install dbt-bigquery`
+- [ ] Initialiser projet : `dbt init battlefield_dbt`
+- [ ] Configurer `profiles.yml` avec BigQuery
+- [ ] Tester connexion : `dbt debug`
 
-**Documentation** : Section "Alembic Migrations" dans `docs/SQL_SERVER_SETUP.md`
+**Fichiers** :
+- `dbt/dbt_project.yml`
+- `dbt/profiles.yml`
 
-### ⏳ 1.4 Scripts de setup
-- [ ] Créer `scripts/setup_database.py` pour initialiser les tables
-- [ ] Créer `scripts/test_connection.py` pour tester la connexion SQL Server
-- [ ] Créer `scripts/test_datalake.py` pour tester upload/download MinIO
+### ⏳ 2.4 Modèles DBT (Silver Layer)
+- [ ] `silver_weapons.sql` : Nettoyage + typage armes
+- [ ] `silver_loadouts.sql` : Déduplicate + normalize
+- [ ] `silver_classes.sql` : Agrégation par classe
+- [ ] Tests DBT : unicité, not null, références
 
-**Validation** : Exécuter les scripts de test sans erreur
+**Exemple modèle** :
+```sql
+-- dbt/models/silver/silver_weapons.sql
+{{ config(materialized='table') }}
 
----
-
-## Phase 2 : Premier Crawler Scrapy (MVP avec 1 source) ⏳
-
-### ⏳ 2.1 Premier Spider Scrapy (PC Gamer)
-- [ ] Créer `backend/crawler/spiders/pcgamer_spider.py`
-  - Classe `PCGamerSpider` héritant de `scrapy.Spider`
-  - Définir `start_urls` : pages à crawler
-  - Méthode `parse()` : extraction avec sélecteurs CSS
-  - Yield des items `WeaponItem` définis dans `items.py`
-  - Support JavaScript avec Scrapy-Playwright si nécessaire
-
-**Fichier à créer** : `backend/crawler/spiders/pcgamer_spider.py` (~100 lignes)
-
-**Commande de test** : `scrapy crawl pcgamer -o test.json`
-
-### ⏳ 2.2 Pipelines de traitement
-- [ ] Créer `backend/crawler/pipelines.py`
-  - `CleaningPipeline` : Nettoyer et valider les données
-  - `DeduplicationPipeline` : Éviter les doublons (hash du contenu)
-  - `VectorStorePipeline` : Générer embeddings et sauvegarder dans ChromaDB
-  - `SQLServerPipeline` : Sauvegarder métadonnées dans SQL Server
-  - `DataLakePipeline` : Sauvegarder HTML brut dans MinIO
-
-**Fichier à créer** : `backend/crawler/pipelines.py` (~200 lignes)
-
-### ⏳ 2.3 Middlewares (optionnel)
-- [ ] Créer `backend/crawler/middlewares.py`
-  - User-Agent rotation (déjà configuré dans settings.py)
-  - Proxy rotation si nécessaire
-  - Custom headers
-
-**Fichier à créer** : `backend/crawler/middlewares.py` (~50 lignes)
-
-### ⏳ 2.4 Tests du crawler
-- [ ] Créer `scripts/test_crawler.py` pour lancer un crawl manuel
-- [ ] Créer `tests/test_spiders.py` avec pytest
-  - Test du spider avec HTML mock (scrapy contracts)
-  - Test des pipelines individuellement
-  - Test de sauvegarde ChromaDB + SQL Server
-
-**Validation** : Crawler capable d'extraire des données de PC Gamer, les vectoriser et les sauvegarder
-
----
-
-## Phase 3 : Pipeline Complet Bronze → Silver → Gold ⏳
-
-### ⏳ 3.1 Normalisation des données (Silver layer)
-- [ ] Créer `backend/utils/normalization.py`
-  - Fonction `normalize_tier()` : S-tier → 1.0, A-tier → 0.8, etc.
-  - Fonction `normalize_percentage()` : 95% win rate → 0.95
-  - Fonction `normalize_rank()` : Rank #1 → 1.0, #10 → 0.1
-  - Fonction `normalize_all()` : Applique toutes les normalisations
-
-**Fichier à créer** : `backend/utils/normalization.py` (~80 lignes)
-
-### ⏳ 3.2 Calcul du consensus (Gold layer)
-- [ ] Créer `backend/utils/consensus.py`
-  - Fonction `calculate_weighted_score()` :
-    - Score = Σ(score_normalisé × crédibilité_source × fraicheur_données) / Σ(crédibilité × fraicheur)
-  - Fonction `generate_consensus()` : Calcule le consensus pour toutes les armes
-  - Sauvegarde dans la table `consensus`
-
-**Fichier à créer** : `backend/utils/consensus.py` (~100 lignes)
-
-### ⏳ 3.3 Tests du pipeline
-- [ ] Créer `tests/test_consensus.py`
-  - Test de normalisation avec données fictives
-  - Test de calcul du consensus avec 3 sources simulées
-  - Test de cohérence (score entre 0 et 1)
-
-**Validation** : Pipeline complet fonctionnel de scraping → normalisation → consensus
-
----
-
-## Phase 4 : API FastAPI & Frontend Next.js 📝
-
-### 📝 4.1 API FastAPI
-- [ ] Créer `backend/api/main.py` avec FastAPI
-  - Endpoints GET `/weapons/top` (top 10 armes)
-  - Endpoint GET `/weapons/{weapon_name}` (détails arme)
-  - Endpoint GET `/classes/top` (top classes)
-  - Documentation Swagger automatique
-- [ ] Créer `backend/api/schemas.py` avec modèles Pydantic
-- [ ] Créer `backend/Dockerfile` pour conteneuriser l'API
-- [ ] Tester avec `uvicorn backend.api.main:app --reload`
-
-**Validation** : API accessible sur http://localhost:8000/docs
-
-### 📝 4.2 Frontend Next.js
-- [ ] Initialiser projet Next.js : `npx create-next-app@latest frontend`
-- [ ] Créer composants :
-  - `WeaponCard.tsx` : Affichage d'une arme avec stats
-  - `TopWeaponsList.tsx` : Liste des top armes
-  - `FilterBar.tsx` : Filtres (arme, classe, patch)
-- [ ] Intégrer l'API backend avec `fetch()` ou `axios`
-- [ ] Créer `frontend/Dockerfile`
-
-**Validation** : Frontend accessible sur http://localhost:3000
-
----
-
-## Phase 5 : Production & Monitoring 📝
-
-### 📝 5.1 Cache Redis
-- [ ] Configurer Redis dans `docker-compose.yml` (déjà fait ✅)
-- [ ] Créer `backend/utils/cache.py` pour gérer le cache
-- [ ] Cacher les résultats de consensus (TTL 1 heure)
-
-### 📝 5.2 Monitoring & Alertes
-- [ ] Configurer Sentry pour monitoring erreurs
-- [ ] Créer webhook Discord/Slack pour alertes scraping
-- [ ] Dashboard de monitoring des scrapers
-
-### 📝 5.3 Migration Azure Blob Storage (Data Lake production)
-- [ ] Configurer Azure Blob Storage (compte + container)
-- [ ] Mettre à jour `backend/utils/datalake.py` pour basculer sur Azure (déjà supporté ✅)
-- [ ] Migrer les données de MinIO vers Azure
-
-**Validation** : Monitoring actif + Data Lake en production sur Azure
-
----
-
-## Phase 6 : AI & Analytics 📝
-
-### 📝 6.1 Analyse d'images/vidéos
-- [ ] Utiliser Azure AI Vision pour extraire du texte des images de loadouts
-- [ ] Parser les vidéos YouTube pour détecter les armes utilisées
-- [ ] Enrichir la base de données avec ces données visuelles
-
-### 📝 6.2 Prédictions ML
-- [ ] Modèle de prédiction de la méta future (scikit-learn)
-- [ ] Analyse de tendances temporelles
-- [ ] Recommandations personnalisées de loadouts
-
----
-
-
-
-## 🚀 Prochaine Étape Recommandée
-
-**Phase 1.1** : Installation SQL Server et test de connexion
-- Suivre le guide `docs/SQL_SERVER_SETUP.md`
-- Installer ODBC Driver 18
-- Démarrer SQL Server avec `docker-compose up -d sqlserver`
-- Tester avec `scripts/test_connection.py` (à créer)
-
-## 11. Pitch technique (30 sec)
-
-Ce projet agrège automatiquement les données de plusieurs sites Battlefield pour identifier la méta actuelle.
-Il repose sur un pipeline Python + SQL Server, orchestré via Docker et exposé par une API FastAPI.
-Les résultats agrégés sont publiés sur un site Next.js léger, garantissant performance, transparence et respect des règles d'éthique du scraping.
-
-
-
-                🌐 Internet (sites Battlefield)
-                          │
-                          ▼
-                🕷️  Crawler Scrapy (Framework professionnel)
-                          │
-         ┌────────────────┼────────────────┬─────────────────┐
-         ▼                ▼                ▼                 ▼
- 🪣 Data Lake MinIO  🧠 SQL Server  🔍 ChromaDB        📊 Embeddings
- (pages brutes)     (métadonnées)  (vector DB)      (semantic search)
-         │                │                │                 │
-         └────────────────┴────────────────┴─────────────────┘
-                                  ▼
-                      ⚖️  Algorithme de Consensus
-                (compare les sources pour trouver la vérité)
-                                  │
-                                  ▼
-                      🚀 API FastAPI (backend)
-                      (donne accès aux données)
-                                  │
-                                  ▼
-                    💻 Frontend React (site web)
-          (affiche les meilleures armes et statistiques)
+SELECT 
+  UPPER(weapon_name) AS weapon_name,
+  weapon_type,
+  CAST(fire_rate AS INT64) AS fire_rate,
+  CASE tier
+    WHEN 'S' THEN 1.0
+    WHEN 'A' THEN 0.8
+    WHEN 'B' THEN 0.6
+    ELSE 0.5
+  END AS tier_score,
+  source,
+  crawled_date
+FROM {{ ref('bronze_weapons') }}
+WHERE weapon_name IS NOT NULL
 ```
+
+### ⏳ 2.5 Modèles DBT (Gold Layer)
+- [ ] `gold_weapon_consensus.sql` : Score méta pondéré
+- [ ] `gold_top_loadouts.sql` : Top 10 loadouts par carte
+- [ ] `gold_win_rates.sql` : Taux victoire par stratégie
+- [ ] Documentation auto : `dbt docs generate`
+
+**Commandes** :
+```bash
+dbt run --models silver      # Exécute modèles Silver
+dbt run --models gold        # Exécute modèles Gold
+dbt test                     # Lance tests
+dbt docs serve               # Documentation interactive
+```
+
+---
+
+## Phase 3 : Airflow (Orchestration) ⏳
+
+### ⏳ 3.1 Setup Airflow
+- [ ] Docker-compose avec Airflow (LocalExecutor)
+- [ ] Configuration : `airflow.cfg`
+- [ ] Connexions : MinIO, BigQuery
+- [ ] Interface Web : http://localhost:8080
+
+**Fichier** : `docker-compose.yml` (mise à jour)
+
+### ⏳ 3.2 DAG Pipeline complet
+- [ ] Créer DAG `battlefield_meta_pipeline`
+- [ ] Tasks : Extract → Upload → Load → DBT → Refresh
+- [ ] Schedule : Quotidien à 2h du matin
+- [ ] Retry : 3 tentatives, backoff exponentiel
+- [ ] Alertes : Email si échec
+
+**Fichier** : `airflow/dags/battlefield_pipeline.py`
+
+### ⏳ 3.3 Monitoring & Logs
+- [ ] Dashboard Airflow (succès/échecs)
+- [ ] Logs structurés par task
+- [ ] Métriques : temps exécution, données crawlées
+- [ ] Alertes Slack/Discord (optionnel)
+
+---
+
+## Phase 4 : Streamlit Dashboard ⏳
+
+### ⏳ 4.1 App Streamlit
+- [ ] Page principale : Top armes
+- [ ] Filtres : Classe, Carte, Mode de jeu
+- [ ] Graphiques : Plotly/Altair
+- [ ] Connexion BigQuery (lecture Gold tables)
+
+**Fichier** : `dashboard/app.py`
+
+**Exemple code** :
+```python
+import streamlit as st
+from google.cloud import bigquery
+
+st.title("🎮 Battlefield Meta Dashboard")
+
+# Connexion BigQuery
+client = bigquery.Client()
+
+# Query Gold layer
+query = """
+  SELECT weapon_name, meta_score, recommended_loadout
+  FROM `battlefield_meta.gold_weapon_consensus`
+  ORDER BY meta_score DESC
+  LIMIT 10
+"""
+
+df = client.query(query).to_dataframe()
+st.dataframe(df)
+```
+
+### ⏳ 4.2 Pages multi-vues
+- [ ] Page 1 : 📊 Top Weapons (graphiques)
+- [ ] Page 2 : 🎯 Loadouts recommandés
+- [ ] Page 3 : 📈 Évolution méta (timeline)
+- [ ] Page 4 : 🗺️ Performances par carte
+
+### ⏳ 4.3 Déploiement Streamlit Cloud
+- [ ] Push code sur GitHub
+- [ ] Connecter Streamlit Cloud
+- [ ] Configurer secrets (BigQuery credentials)
+- [ ] URL publique : `battlefield-meta.streamlit.app`
+
+---
+
+## Phase 5 : Production & IA 📝
+
+### 📝 5.1 CI/CD
+- [ ] GitHub Actions : tests automatiques
+- [ ] Deploy automatique Streamlit
+- [ ] DBT CI : tests sur PR
+
+### 📝 5.2 IA & Insights
+- [ ] Langchain + OpenAI : Résumés stratégiques
+- [ ] Recherche sémantique forums
+- [ ] Recommandations personnalisées
+
+### 📝 5.3 Monitoring avancé
+- [ ] Great Expectations : tests qualité données
+- [ ] Sentry : monitoring erreurs
+- [ ] Grafana : métriques pipeline
+
+---
+
+## 🛠️ Commandes rapides
+
+### Lancer le pipeline complet (local)
+```bash
+# 1. Démarrer MinIO + Airflow
+docker-compose up -d
+
+# 2. Crawler une source
+scrapy crawl pcgamer -o data/bronze/pcgamer_$(date +%Y-%m-%d).json
+
+# 3. Upload vers MinIO
+python scripts/upload_to_minio.py
+
+# 4. Load dans BigQuery
+python scripts/load_bigquery.py --date $(date +%Y-%m-%d)
+
+# 5. Transformations DBT
+cd dbt && dbt run && dbt test
+
+# 6. Lancer dashboard
+cd dashboard && streamlit run app.py
+```
+
+### Airflow (production)
+```bash
+# Déclencher manuellement le DAG
+airflow dags trigger battlefield_meta_pipeline
+
+# Voir les logs
+airflow tasks logs battlefield_meta_pipeline extract_pcgamer 2025-10-15
+```
+
+---
+
+## 💡 Différences clés avec l'ancienne stack
+
+| Aspect | Ancienne Stack | Nouvelle Stack | Avantage |
+|--------|---------------|----------------|----------|
+| **Orchestration** | APScheduler (Python) | Apache Airflow | ✅ Interface Web, retry, monitoring, DAGs |
+| **Data Warehouse** | SQL Server | BigQuery | ✅ Gratuit 1TB/mois, SQL performant, cloud |
+| **Transformation** | Python scripts | DBT Core | ✅ SQL modulaire, tests, documentation auto |
+| **Visualisation** | Next.js/React | Streamlit | ✅ 100% Python, rapide, déploiement gratuit |
+| **Vector DB** | ChromaDB/Qdrant | (Phase 5 optionnel) | ✅ Simplifié, focus sur l'essentiel |
+| **Complexité** | Élevée (6 services) | Moyenne (3 services) | ✅ Maintenance facile, stack éprouvée |
+
+---
+
+## 📝 Prochaine étape recommandée
+
+**Phase 1.2** : Implémenter upload automatique MinIO
+- Créer `scripts/upload_to_minio.py`
+- Tester avec données PC Gamer déjà crawlées
+- Vérifier organisation par date dans MinIO
+
+**Commande** :
+```bash
+python scripts/upload_to_minio.py --source pcgamer --date 2025-10-15
+```
+
+**Objectif** : Avoir un pipeline Bronze complet (Scrapy → MinIO) avant d'attaquer BigQuery.
+
+---
+
+## Stack principale (MVP - Phase 1-2)
+---
+
+## 📚 Ressources & Documentation
+
+- **Scrapy** : https://docs.scrapy.org
+- **Apache Airflow** : https://airflow.apache.org/docs
+- **DBT Core** : https://docs.getdbt.com
+- **BigQuery** : https://cloud.google.com/bigquery/docs
+- **Streamlit** : https://docs.streamlit.io
+- **MinIO** : https://min.io/docs
+
+---
+
+## 📄 Licence
+
+MIT License - Paul Fretté © 2025
+
+---
+
+## 🎯 Pitch technique (30 sec)
+
+**Battlefield Meta Aggregator** est un pipeline ELT automatisé qui :
+1. **Crawle quotidiennement** 10 sources Battlefield avec Scrapy
+2. **Stocke les données brutes** dans MinIO (Data Lake Bronze)
+3. **Transforme dans BigQuery** avec DBT Core (modèles Silver/Gold)
+4. **Orchestre avec Airflow** (DAGs quotidiens, retry, monitoring)
+5. **Affiche dans Streamlit** (dashboard interactif temps réel)
+
+**100% Open Source**, reproductible avec Docker, déployable gratuitement sur cloud.
+
+**Objectif** : Aider les joueurs Battlefield à optimiser leur performance grâce à l'analyse data-driven de la méta communautaire.
