@@ -11,20 +11,136 @@
 - ✅ Git configuré (email correct)
 - ✅ README complet avec nouvelle stack
 - ✅ MinIO configuré dans docker-compose
-- ✅ 2 spiders testés (PC Gamer, WZStats)
+- ✅ Documentation complète créée
 
-### 🔄 Phase 1 : EN COURS (50%)
-- ✅ Spider PC Gamer fonctionnel
-- ✅ Extraction loadouts testée
-- ⏳ 4 autres spiders à créer
+### 🔍 Phase 0.5 : EXPLORATION DES SOURCES (⚠️ PRIORITÉ ABSOLUE)
+**⚠️ AVANT de coder, tu dois explorer les sources de données disponibles !**
+
+- ⏳ Rechercher API officielle EA/DICE (Priorité #1)
+- ⏳ Analyser Tracker.gg (API possible)
+- ⏳ Tester Reddit API (officielle)
+- ⏳ Comparer 10+ sources potentielles
+- ⏳ Remplir tableau comparatif (voir `docs/SOURCES_EXPLORATION.md`)
+- ⏳ Choisir les 5 meilleures sources (API > Scraping)
+
+**📖 Guide complet** : `docs/SOURCES_EXPLORATION.md`
+
+**Pourquoi c'est critique ?**
+- 🚀 Les APIs sont 10x plus rapides que le scraping
+- 🛡️ Les APIs sont légales et stables (pas de ban)
+- 📊 Données structurées (JSON propre)
+- ⚡ Moins de code à écrire et maintenir
+
+**Temps estimé** : 2-3 jours d'exploration
+
+---
+
+### 🔄 Phase 1 : EXTRACTION (APRÈS Phase 0.5)
+- ✅ Spider PC Gamer fonctionnel (pour test)
+- ✅ Spider WZStats fonctionnel (pour test)
+- ⏳ Implémenter APIs trouvées (Priorité #1)
+- ⏳ Compléter avec Scrapy si nécessaire
 - ⏳ Script upload MinIO à créer
 - ⏳ Pipeline complet Bronze à tester
 
 ---
 
-## 🎯 LES 3 PROCHAINES ACTIONS (CETTE SEMAINE)
+## 🎯 LES PROCHAINES ACTIONS (DANS L'ORDRE)
 
-### 🥇 ACTION 1 : Compléter les spiders Scrapy (2-3 heures)
+### 🥇 ACTION 0.5 : EXPLORATION DES SOURCES (⚠️ COMMENCE ICI !)
+
+**⚠️ NOUVELLE PRIORITÉ : Ne code RIEN avant d'avoir exploré les APIs disponibles !**
+
+**Objectif** : Trouver les meilleures sources de données (APIs > Scraping)
+
+**Durée** : 2-3 jours d'exploration
+
+**Document complet** : 📖 **`docs/SOURCES_EXPLORATION.md`**
+
+#### Checklist d'exploration
+
+```
+[ ] 1. Rechercher API officielle EA/DICE Battlefield
+       → Chercher "Battlefield API", "EA Developer Portal"
+       → Vérifier BattleLog API
+
+[ ] 2. Tester Tracker.gg (API possible)
+       → DevTools → Network → Chercher endpoints API
+       → Tester avec curl
+
+[ ] 3. Setup Reddit API (officielle)
+       → Créer app Reddit : https://www.reddit.com/prefs/apps
+       → Installer praw : pip install praw
+       → Tester extraction posts r/Battlefield6
+
+[ ] 4. Remplir tableau comparatif (10+ sources)
+       → Scorer chaque source (/55 points)
+       → Documenter findings
+
+[ ] 5. Choisir 5 sources finales
+       → Privilégier APIs en priorité
+       → Scrapy en complément seulement
+
+[ ] 6. Créer plan d'implémentation
+       → Ordre : API EA → Tracker → Reddit → Scraping
+       → Temps estimé par source
+```
+
+#### Livrables attendus
+
+```
+/data/exploration/           # Dossier à créer
+├── test_api_ea.json        # Si API trouvée
+├── test_api_tracker.json   # Réponse Tracker.gg
+├── test_api_reddit.json    # Posts Reddit
+├── findings_summary.md     # Résumé découvertes
+└── final_sources.md        # 5 sources choisies
+```
+
+#### Résultat attendu
+
+**Avant exploration** (hypothèse) :
+```
+5 sources = 5 spiders Scrapy à créer
+Temps estimé : 10-15 heures
+Risque : Scraping instable, bans possibles
+```
+
+**Après exploration** (objectif) :
+```
+3 APIs + 2 spiders Scrapy
+Temps estimé : 6-8 heures
+Avantage : Rapide, stable, légal ✅
+```
+
+**📖 Guide détaillé** : `docs/SOURCES_EXPLORATION.md`
+
+---
+
+### � ACTION 1 : Implémenter les sources choisies (APRÈS Action 0.5)
+
+**Objectif** : Extraire les données des sources validées
+
+**Cette action sera mise à jour APRÈS ton exploration !**
+
+Structure prévue :
+```
+/extract/
+├── apis/                    # Clients API (si trouvés)
+│   ├── ea_client.py        # API EA/DICE
+│   ├── tracker_client.py   # Tracker.gg
+│   └── reddit_client.py    # Reddit API
+├── spiders/                 # Scrapy (complément)
+│   ├── pcgamer_spider.py   ✅ Déjà fait
+│   └── ...                 # Selon findings
+└── README.md
+```
+
+**Temps estimé** : Variable selon APIs trouvées (voir Action 0.5)
+
+---
+
+### 🥉 ACTION 2 : Script upload MinIO (1-2 heures)
 
 **Objectif** : Crawler les 5 sources principales Battlefield
 
@@ -71,9 +187,11 @@ class RedditSpider(scrapy.Spider):
 
 ---
 
-### 🥈 ACTION 2 : Script upload MinIO automatique (1-2 heures)
+### � ACTION 2 : Script upload MinIO (1-2 heures)
 
-**Objectif** : Sauvegarder automatiquement les données crawlées dans MinIO
+**Objectif** : Sauvegarder automatiquement les données extraites dans MinIO
+
+**⚠️ Cette action reste la même, quel que soit le résultat de l'exploration**
 
 **Fichier à créer** : `scripts/upload_to_minio.py`
 
@@ -274,19 +392,29 @@ dbt debug
 
 ---
 
-## 📅 PLANNING SEMAINE PROCHAINE
+## 📅 PLANNING RÉVISÉ
 
-### Lundi - Mardi : Phase 1 complète
-- [ ] Créer les 4 spiders manquants
+### Cette semaine : Phase 0.5 - EXPLORATION
+- [ ] Rechercher API EA/DICE Battlefield (Priorité #1)
+- [ ] Tester Tracker.gg API
+- [ ] Setup Reddit API
+- [ ] Analyser 10+ sources potentielles
+- [ ] Remplir tableau comparatif (docs/SOURCES_EXPLORATION.md)
+- [ ] Choisir 5 sources finales (API > Scraping)
+- [ ] Créer plan d'implémentation détaillé
+
+### Semaine prochaine : Phase 1 - IMPLÉMENTATION
+- [ ] Implémenter APIs trouvées (selon findings)
+- [ ] Compléter avec spiders Scrapy si nécessaire
 - [ ] Script upload MinIO
 - [ ] Tests complets extraction
 
-### Mercredi - Jeudi : Phase 2 BigQuery + DBT
+### Semaine +2 : Phase 2 - BigQuery + DBT
 - [ ] Setup BigQuery
 - [ ] Premier modèle DBT (Bronze)
 - [ ] Modèles Silver (nettoyage)
 
-### Vendredi : Phase 3 Airflow
+### Semaine +3 : Phase 3 - Airflow
 - [ ] Docker-compose Airflow
 - [ ] Premier DAG simple
 - [ ] Test orchestration
