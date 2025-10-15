@@ -126,9 +126,48 @@ logs/
 *~
 
 # ============================================
-# 8. DONNÉES SCRAPING (OPTIONNEL)
+# 8. DONNÉES & OUTPUTS
 # ============================================
-# Si tu veux ignorer les données brutes scrapées en local
+# Données générées par crawls et outputs locaux
 
-# raw_data/         # Décommenter si tu veux ignorer les données brutes
-# scraped_html/     # Décommenter si tu veux ignorer les HTML téléchargés
+# Données crawlées (JSON, HTML)
+data/outputs/       # Résultats de crawls Scrapy
+data/bronze/        # Données brutes locales
+*.json              # Tous les fichiers JSON (résultats crawls)
+!package.json       # Exception : garder package.json
+
+# MinIO local
+data/minio/         # Stockage MinIO local (si utilisé en développement)
+
+# ============================================
+# 9. BIGQUERY & DBT
+# ============================================
+# Fichiers de configuration sensibles
+
+# Clés d'API Google Cloud
+config/bigquery-key.json
+*.json              # Clés de service BigQuery
+!dbt/profiles.yml   # Exception : garder profiles.yml (template)
+
+# DBT
+dbt/logs/
+dbt/target/
+dbt/dbt_packages/
+
+# ============================================
+# 10. AIRFLOW
+# ============================================
+# Logs et métadonnées Airflow
+
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/webserver_config.py
+
+# ============================================
+# 11. STREAMLIT
+# ============================================
+# Cache Streamlit
+
+.streamlit/secrets.toml
+dashboard/.streamlit/
