@@ -82,22 +82,31 @@ L'objectif est de construire un **pipeline ELT complet et automatisé** pour :
 
 ## 🌍 Sources de données Battlefield 6
 
-Les données seront extraites quotidiennement des sources suivantes :
+**⚠️ Phase 0.5 en cours : Exploration des sources (APIs > Scraping)**
 
-| Nom du site | Type de contenu | Lien |
-|--------------|----------------|------|
-| CODMunity / Battlefinity | Classements d’armes, comparateurs de stats, méta actuelle. | [https://codmunity.gg/battlefield](https://codmunity.gg/battlefield) |
-| BattlefieldMeta (WZStats) | Tier lists, armes les plus performantes, méta actuelle. | [https://wzstats.gg/battlefield-6/meta](https://wzstats.gg/battlefield-6/meta) |
-| Skycoach.gg | Guides de loadouts et accessoires pour chaque arme. | [https://skycoach.gg/blog/battlefield-6/articles/top-loadouts](https://skycoach.gg/blog/battlefield-6/articles/top-loadouts) |
-| Gam3s.gg | Tier lists, classement des meilleures armes, méta par patch. | [https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list](https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list) |
-| PC Gamer | Analyses d’armes et loadouts détaillés, méta du moment. | [https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build](https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build) |
-| GamesRadar | Conseils pour armes, accessoires, et classes à privilégier. | [https://www.gamesradar.com/games/battlefield/battlefield-6-weapons-guns](https://www.gamesradar.com/games/battlefield/battlefield-6-weapons-guns) |
-| Beebom | Guides “best weapons & loadouts”, guides rapides par type d’arme. | [https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide](https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide) |
-| EA Forums – Battlefield 6 Discussions | Discussions communautaires, retours joueurs, stats d’armes. | [https://forums.ea.com/discussions/battlefield-6-general-discussion-en](https://forums.ea.com/discussions/battlefield-6-general-discussion-en) |
-| Epic Games Blog | Guides officiels (snipers, armes, mécaniques du jeu). | [https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6](https://store.epicgames.com/news/best-sniper-loadout-guide-battlefield-6) |
-| Reddit /r/Battlefield6 | Méta communautaire, retours directs des joueurs. | [https://www.reddit.com/r/Battlefield6/](https://www.reddit.com/r/Battlefield6/) |
+Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherche méthodique** est en cours pour :
+1. ✅ Identifier les **APIs officielles** (EA/DICE, Tracker.gg, etc.)
+2. ✅ Tester la disponibilité et qualité des données
+3. ✅ Choisir les **5 meilleures sources** (mix APIs + Scraping)
 
-| Reddit /r/Battlefield6 | Méta communautaire, retours directs des joueurs. | [https://www.reddit.com/r/Battlefield6/](https://www.reddit.com/r/Battlefield6/) |
+**📖 Guide complet** : `docs/SOURCES_EXPLORATION.md`
+
+### Sources candidates (à valider)
+
+| Priorité | Nom du site | Type de contenu | Lien | API ? |
+|----------|-------------|-----------------|------|-------|
+| 🔴 HIGH | **EA/DICE API** (officielle) | Stats officielles Battlefield | À rechercher | ⚠️ À vérifier |
+| 🔴 HIGH | **Tracker.gg** | Stats joueurs, loadouts | [Tracker.gg](https://tracker.gg/battlefield-2042) | ⚠️ À vérifier |
+| 🟢 MEDIUM | **Reddit API** (officielle) | Discussions r/Battlefield6 | [Reddit](https://www.reddit.com/r/Battlefield6/) | ✅ API officielle |
+| 🟡 LOW | PC Gamer | Analyses d'armes et loadouts | [PC Gamer](https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build) | ❌ Scraping |
+| 🟡 LOW | WZStats | Tier lists, méta actuelle | [WZStats](https://wzstats.gg/battlefield-6/meta) | ❌ Scraping |
+| ⚪ TODO | Skycoach.gg | Guides loadouts | [Skycoach](https://skycoach.gg/blog/battlefield-6/articles/top-loadouts) | ❓ À explorer |
+| ⚪ TODO | Gam3s.gg | Tier lists, méta par patch | [Gam3s](https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list) | ❓ À explorer |
+| ⚪ TODO | Beebom | Guides best weapons | [Beebom](https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide) | ❓ À explorer |
+
+**📊 Tableau comparatif détaillé** : Voir `docs/SOURCES_EXPLORATION.md`
+
+**⏳ État** : Phase d'exploration (2-3 jours) → Choix des 5 sources finales → Implémentation
 
 **Fréquence de crawling** : Quotidienne (via Airflow DAG), avec respect des `robots.txt` et rate limiting.
 
@@ -105,48 +114,120 @@ Les données seront extraites quotidiennement des sources suivantes :
 
 ## 🧩 Fonctionnalités du pipeline
 
-### ✅ **Phase 1 : Extraction (Bronze Layer)**
-- Scrapy spiders pour crawler automatiquement les 10 sources
-- Support JavaScript avec Playwright pour sites dynamiques
-- Sauvegarde fichiers bruts dans MinIO :
-  - HTML des pages crawlées
-  - JSON structuré (loadouts, stats)
-  - Images (screenshots d'armes)
-- Métadonnées : URL, date crawl, source, hash pour déduplication
+## 📋 Feuille de route du projet
 
-### ✅ **Phase 2 : Chargement dans BigQuery (Silver Layer)**
-- Upload automatique des JSON de MinIO vers BigQuery
-- Tables partitionnées par date de crawl
-- Schémas définis (armes, loadouts, classes, cartes)
-- Nettoyage et typage avec DBT Core :
+### ✅ **Phase 0 : Setup & Infrastructure** (TERMINÉE)
+- ✅ Architecture ELT définie (Scrapy → MinIO → BigQuery → DBT → Streamlit)
+- ✅ Stack simplifiée (12 → 5 technologies)
+- ✅ Git configuré correctement (contributions GitHub)
+- ✅ Structure projet organisée (extract/, dbt/, airflow/, dashboard/, data/)
+- ✅ Documentation complète créée (README par dossier)
+- ✅ MinIO configuré dans docker-compose
+- ✅ 2 spiders Scrapy de test (PC Gamer, WZStats)
+
+### 🔍 **Phase 0.5 : Exploration des sources** (EN COURS - Priorité #1)
+**⚠️ AVANT de développer, identifier les meilleures sources de données**
+
+**Objectif** : Privilégier les APIs (rapide, légal, stable) avant le scraping
+
+**Durée estimée** : 2-3 jours d'exploration méthodique
+
+**Checklist** :
+- ⏳ Rechercher API officielle EA/DICE Battlefield
+- ⏳ Tester Tracker.gg (API possible via DevTools)
+- ⏳ Setup Reddit API (officielle, gratuite)
+- ⏳ Analyser 10+ sources candidates
+- ⏳ Remplir tableau comparatif (`docs/SOURCES_EXPLORATION.md`)
+- ⏳ Choisir les 5 meilleures sources (API > Scraping)
+- ⏳ Créer plan d'implémentation détaillé
+
+**Livrables** :
+```
+/data/exploration/
+├── test_api_ea.json           # Réponse API EA (si trouvée)
+├── test_api_tracker.json      # Réponse Tracker.gg
+├── test_api_reddit.json       # Posts Reddit extraits
+├── findings_summary.md        # Résumé découvertes
+└── final_sources.md           # 5 sources choisies avec plan
+```
+
+**📖 Guide complet** : `docs/SOURCES_EXPLORATION.md`
+
+---
+
+### 🔄 **Phase 1 : Extraction** (APRÈS Phase 0.5)
+**Dépend des résultats de l'exploration**
+
+**Scénario optimal (si APIs trouvées)** :
+- 3 APIs (EA, Tracker, Reddit) + 2 spiders Scrapy (complément)
+- Temps estimé : 6-8 heures (vs 15h avec 5 spiders)
+- Stabilité : ★★★★★
+
+**Structure prévue** :
+```
+/extract/
+├── apis/                      # Clients API (si trouvés)
+│   ├── ea_client.py          # API EA/DICE
+│   ├── tracker_client.py     # Tracker.gg
+│   └── reddit_client.py      # Reddit API (praw)
+├── spiders/                   # Scrapy (complément)
+│   ├── pcgamer_spider.py     ✅ Déjà fait
+│   └── ...                   # Selon findings
+└── README.md
+```
+
+**Actions** :
+- Implémenter clients API trouvés (priorité #1)
+- Créer spiders Scrapy pour sources sans API
+- Script `upload_to_minio.py` (Bronze layer)
+- Tests complets de toutes les sources
+
+---
+
+### ✅ **Phase 2 : Chargement BigQuery (Silver Layer)**
+- Setup compte Google Cloud (gratuit, 300$ crédit)
+- Créer dataset BigQuery `battlefield_meta`
+- Service Account pour authentification
+- Installer DBT (`pip install dbt-bigquery`)
+- Configurer `dbt/profiles.yml`
+- Créer modèles Bronze (MinIO → BigQuery raw)
+- Modèles Silver : Nettoyage et normalisation
   - Suppression doublons
-  - Normalisation noms d'armes (PW7A2 = MP7)
-  - Conversion métadonnées (tier S → 1.0, A → 0.8)
+  - Normalisation noms d'armes
+  - Typage et validation
 
-### ✅ **Phase 3 : Transformation (Gold Layer)**
+---
+
+### ✅ **Phase 3 : Transformation DBT (Gold Layer)**
 - Modèles DBT pour agrégations :
   - **Consensus méta** : Score pondéré par source et fraîcheur
   - **Top armes** par classe, carte, mode de jeu
   - **Loadouts recommandés** avec accessoires
-  - **Taux de victoire** par stratégie
-- Tests automatiques DBT (données cohérentes, pas de NULL)
+  - **Évolution méta** dans le temps
+- Tests automatiques DBT (données cohérentes)
 - Documentation auto-générée des modèles
+- DAG Airflow pour orchestration quotidienne
 
-### ✅ **Phase 4 : Visualisation (Streamlit)**
+---
+
+### ✅ **Phase 4 : Visualisation Streamlit**
 - Dashboard interactif avec :
   - 📊 Graphiques top armes par patch
-  - 🎯 Filtres : classe, carte, mode de jeu
+  - 🎯 Filtres : classe, carte, mode de jeu, date
   - 📈 Évolution méta dans le temps
   - 🔗 Liens vers sources originales
-- Mise à jour automatique quotidienne (connecté à BigQuery)
-- Déployable sur Streamlit Cloud (gratuit)
+- Connexion BigQuery (lecture tables Gold)
+- Déploiement Streamlit Cloud (gratuit)
+- Rafraîchissement automatique quotidien
 
-### 🔜 **Phase 5 : IA & Insights (Optionnel)**
-- Langchain + OpenAI pour :
-  - Résumés automatiques des stratégies gagnantes
-  - Recommandations personnalisées par style de jeu
-  - Recherche sémantique dans les forums
-  - Génération de patch notes synthétiques
+---
+
+### 🔜 **Phase 5 : Production & Monitoring** (Optionnel)
+- Alertes email si DAG échoue
+- Métriques qualité données (freshness, completeness)
+- Logs centralisés
+- CI/CD GitHub Actions
+- Documentation utilisateur finale
 
 ---
 
@@ -246,75 +327,171 @@ with DAG(
 
 ---
 
-## 📁 Structure du projet (mise à jour)
+## 📁 Structure du projet
 
 ```
 battlefield_meta_aggregator/
 │
-├── airflow/                    ← Apache Airflow
-│   ├── dags/
-│   │   └── battlefield_pipeline.py
-│   ├── plugins/
-│   └── logs/
-│
-├── dbt/                        ← DBT Core (Transformations)
-│   ├── models/
-│   │   ├── bronze/             ← Raw data from MinIO
-│   │   │   └── bronze_crawled_pages.sql
-│   │   ├── silver/             ← Cleaned & typed data
-│   │   │   ├── silver_weapons.sql
-│   │   │   ├── silver_loadouts.sql
-│   │   │   └── silver_classes.sql
-│   │   └── gold/               ← Business metrics
-│   │       ├── gold_weapon_consensus.sql
-│   │       ├── gold_top_loadouts.sql
-│   │       └── gold_win_rates.sql
-│   ├── tests/
-│   ├── macros/
-│   ├── dbt_project.yml
-│   └── profiles.yml            ← BigQuery connection
-│
-├── extract/                    ← Scrapy crawlers
-│   ├── spiders/
-│   │   ├── pcgamer_spider.py
-│   │   ├── reddit_spider.py
-│   │   ├── skycoach_spider.py
-│   │   └── gam3s_spider.py
+├── 📥 extract/                 # Extraction de données (Scrapy + APIs)
+│   ├── apis/                  # Clients API (après Phase 0.5)
+│   │   ├── ea_client.py       # API EA/DICE (si trouvée)
+│   │   ├── tracker_client.py  # Tracker.gg API
+│   │   └── reddit_client.py   # Reddit API (praw)
+│   ├── spiders/               # Scrapy crawlers (complément)
+│   │   ├── pcgamer_spider.py  ✅ Fait
+│   │   └── wzstats_spider.py  ✅ Fait
 │   ├── items.py
-│   ├── pipelines.py
 │   ├── settings.py
-│   └── scrapy.cfg
+│   ├── scrapy.cfg
+│   └── README.md
 │
-├── scripts/                    ← Utilitaires Python
-│   ├── load_bigquery.py        ← Upload MinIO → BigQuery
-│   ├── test_minio.py
-│   └── test_bigquery.py
+├── 🔄 dbt/                     # Transformations SQL (DBT Core)
+│   ├── models/
+│   │   ├── bronze/            # Raw data MinIO → BigQuery
+│   │   ├── silver/            # Nettoyage & normalisation
+│   │   └── gold/              # KPIs & métriques business
+│   ├── dbt_project.yml
+│   ├── profiles.yml           # Connexion BigQuery
+│   └── README.md
 │
-├── dashboard/                  ← Streamlit App
-│   ├── app.py                  ← Application principale
-│   ├── pages/
-│   │   ├── 1_📊_Top_Weapons.py
-│   │   ├── 2_🎯_Loadouts.py
-│   │   └── 3_📈_Trends.py
-│   └── requirements.txt
+├── 🔀 airflow/                 # Orchestration (Apache Airflow)
+│   ├── dags/
+│   │   └── battlefield_pipeline.py  # DAG quotidien
+│   ├── logs/
+│   └── README.md
 │
-├── data/                       ← Données locales (dev)
-│   ├── bronze/
-│   ├── silver/
-│   └── gold/
+├── 📊 dashboard/               # Visualisation (Streamlit)
+│   ├── app.py                 # Application principale
+│   ├── pages/                 # Pages multi-vues
+│   └── README.md
 │
-├── docker-compose.yml          ← Airflow + MinIO + DBT
-├── requirements.txt            ← Dépendances Python
-├── .env                        ← Variables d'environnement
-├── .gitignore
-└── README.md
+├── 💾 data/                    # Données locales (dev)
+│   ├── outputs/               # Résultats crawls Scrapy
+│   ├── bronze/                # Tests locaux
+│   ├── exploration/           # Findings Phase 0.5
+│   └── README.md
+│
+├── 🛠️ scripts/                 # Utilitaires Python
+│   ├── upload_to_minio.py     # Upload → MinIO (Bronze)
+│   ├── load_bigquery.py       # MinIO → BigQuery
+│   ├── test_all_sources.py    # Tester APIs + Scrapy
+│   └── README.md
+│
+├── 📚 docs/                    # Documentation
+│   ├── SOURCES_EXPLORATION.md # Guide exploration (Phase 0.5)
+│   ├── MINIO_EXPLAINED.md     # Comprendre MinIO
+│   └── CRAWLING_GUIDE.md      # Guide Scrapy
+│
+├── 🚀 NEXT_STEPS.md            # Guide des prochaines étapes
+├── 📖 readme.md                # Ce fichier
+├── � docker-compose.yml       # MinIO + Airflow
+├── 📦 requirements.txt         # Dépendances Python
+├── � .env.example             # Template variables d'env
+└── 🚫 .gitignore
+```
+
+### 📌 Légende des dossiers
+
+| Dossier | Rôle | Phase | État |
+|---------|------|-------|------|
+| `extract/` | Extraction données (APIs + Scrapy) | Phase 1 | 🔄 En cours |
+| `dbt/` | Transformations SQL (Bronze→Gold) | Phase 2-3 | ⏳ À faire |
+| `airflow/` | Orchestration quotidienne | Phase 3 | ⏳ À faire |
+| `dashboard/` | Visualisation Streamlit | Phase 4 | ⏳ À faire |
+| `data/` | Stockage local développement | Phase 0-1 | ✅ Créé |
+| `scripts/` | Utilitaires & helpers | Phase 1-2 | ⏳ À créer |
+| `docs/` | Documentation technique | Phase 0 | ✅ Fait |
+
+---
+
+## 🚀 Démarrage rapide
+
+### 1. Prérequis
+
+```bash
+# Python 3.11+
+python --version
+
+# Docker & Docker Compose
+docker --version
+docker-compose --version
+```
+
+### 2. Installation
+
+```bash
+# Cloner le repo
+git clone https://github.com/paulfrettepro-collab/battlefield_meta_aggregator.git
+cd battlefield_meta_aggregator
+
+# Créer environnement virtuel
+python -m venv .venv
+source .venv/bin/activate  # Mac/Linux
+
+# Installer dépendances
+pip install -r requirements.txt
+
+# Copier variables d'environnement
+cp .env.example .env
+# Éditer .env avec tes clés
+```
+
+### 3. Lancer MinIO (stockage Bronze)
+
+```bash
+# Démarrer MinIO
+docker-compose up -d minio
+
+# Accéder interface web
+open http://localhost:9001
+# Login : minioadmin / minioadmin
+```
+
+### 4. Explorer les sources (Phase 0.5 - EN COURS)
+
+```bash
+# Lire le guide d'exploration
+open docs/SOURCES_EXPLORATION.md
+
+# Créer dossier exploration
+mkdir -p data/exploration
+
+# Commencer recherche APIs
+# 1. Chercher "Battlefield API EA developer"
+# 2. Tester Tracker.gg (DevTools)
+# 3. Setup Reddit API
+```
+
+### 5. Tester extraction (après Phase 0.5)
+
+```bash
+# Lancer un spider Scrapy
+scrapy crawl pcgamer -o data/outputs/pcgamer_results.json
+
+# Upload vers MinIO
+python scripts/upload_to_minio.py
 ```
 
 ---
 
-## 2. Architecture technique (vue d'ensemble)
+## 📚 Documentation
 
-### Stack principale (MVP - Phase 1-2)
+| Document | Description | Phase |
+|----------|-------------|-------|
+| **`NEXT_STEPS.md`** | 🎯 Guide des prochaines actions | Phase 0.5-1 |
+| **`docs/SOURCES_EXPLORATION.md`** | 🔍 Exploration méthodique des sources | Phase 0.5 |
+| **`docs/MINIO_EXPLAINED.md`** | 🗄️ Comprendre MinIO simplement | Phase 0 |
+| **`docs/CRAWLING_GUIDE.md`** | 🕷️ Guide Scrapy avancé | Phase 1 |
+| **`extract/README.md`** | 📥 Documentation extraction | Phase 1 |
+| **`dbt/README.md`** | 🔄 Architecture DBT | Phase 2-3 |
+| **`airflow/README.md`** | 🔀 Orchestration Airflow | Phase 3 |
+| **`dashboard/README.md`** | 📊 Dashboard Streamlit | Phase 4 |
+
+**📖 Commence ici** : `NEXT_STEPS.md` → Action 0.5 (Exploration)
+
+---
+
+## 🔁 Pipeline Airflow - DAG quotidien (Preview Phase 3)
 ## 🚀 Roadmap simplifiée & Étapes
 
 ### 📋 Légende des statuts
