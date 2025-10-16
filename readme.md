@@ -23,30 +23,39 @@ L'objectif est de construire un **pipeline ELT complet et automatisé** pour :
 
 ```
             +-------------------+
-            |  Sites communaut. |
-            |  PC Gamer, Reddit |
-            |  Gam3s, Skycoach  |
+            | Sources données   |
+            |  Tracker.gg (API) |
+            |  GameTools (API)  |
+            |  Articles guides  |
             +--------+----------+
                      |
-                     | Scrapy Crawlers
+                     | Scrapy + APIs
                      ▼
             +-------------------+
             |   Bronze Layer    |  ← MinIO (Raw HTML/JSON)
             |   (Data Lake)     |     Stockage fichiers bruts
             +--------+----------+
                      |
-                     | Load vers BigQuery
+                     | Load + LLM Processing
+                     ▼
+            +-------------------+
+            | LLM Extraction    |  ← GPT-4 / Claude
+            | (HTML → JSON)     |     Extraction intelligente
+            +--------+----------+
+                     |
+                     | Structured data
                      ▼
             +-------------------+
             |   Silver Layer    |  ← BigQuery + DBT Core
             |  (Nettoyé, typé)  |     Transformation SQL
+            |  Fusion sources   |     Tracker + LLM + GameTools
             +--------+----------+
                      |
                      | Modélisation DBT
                      ▼
             +-------------------+
             |    Gold Layer     |  ← BigQuery (Tables finales)
-            | (KPI, Consensus)  |     Prêt pour dashboard
+            | (KPI, Consensus)  |     Méta consensus multi-sources
             +--------+----------+
                      |
                      | Requêtes SQL
@@ -63,21 +72,28 @@ L'objectif est de construire un **pipeline ELT complet et automatisé** pour :
             +-------------------+
 ```
 
+**Innovation clé** : Layer LLM pour extraction intelligente HTML → JSON structuré
+
 ---
 
 ## ⚙️ Stack Technique (100% Open Source)
 
 | Composant         | Technologie                    | Rôle                                                          |
 |-------------------|--------------------------------|---------------------------------------------------------------|
-| **Extraction**    | `Scrapy` + `Playwright`        | Crawler les sites Battlefield (PC Gamer, Reddit, forums)      |
+| **Extraction**    | `Scrapy` + `Playwright`        | Crawler Tracker.gg, GameTools, articles guides                |
+| **Extraction LLM**| `LangChain` + `OpenAI GPT-4`   | Extraction intelligente HTML → JSON structuré (loadouts)      |
 | **Orchestration** | `Apache Airflow`               | Planification DAGs, relances auto, logs, monitoring           |
 | **Storage Bronze**| `MinIO` (S3-compatible)        | Data Lake pour fichiers bruts (HTML, JSON, images)            |
 | **Data Warehouse**| `Google BigQuery`              | Entrepôt de données cloud, SQL performant, gratuit jusqu'à 1TB|
 | **Transformation**| `DBT Core`                     | Modèles SQL (Bronze → Silver → Gold), tests, documentation   |
 | **Visualisation** | `Streamlit`                    | Dashboard interactif Python, filtres dynamiques, temps réel   |
-| **IA (optionnel)**| `Langchain` + `OpenAI API`     | Génération insights, résumés stratégiques, recherche sémantique|
 | **Containerisation**| `Docker` + `docker-compose`  | Environnement reproductible (Airflow, MinIO, DBT)            |
 | **Versioning**    | `Git` + `GitHub`               | Code versionné, CI/CD GitHub Actions                          |
+
+**Nouveauté : Extraction LLM** 🤖
+- **GPT-4** : Extraction structurée des articles HTML (loadouts, accessoires)
+- **Alternative gratuite** : Llama 3 / Mistral via Ollama (local)
+- **Coût** : ~$15/mois pour 50 articles (ou gratuit avec Ollama)
 ---
 
 ## 🌍 Sources de données Battlefield 6
@@ -91,22 +107,25 @@ Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherc
 
 **📖 Guide complet** : `docs/SOURCES_EXPLORATION.md`
 
-### Sources candidates (à valider)
+### Sources finales (après exploration)
 
-| Priorité | Nom du site | Type de contenu | Lien | API ? |
-|----------|-------------|-----------------|------|-------|
-| 🔴 HIGH | **EA/DICE API** (officielle) | Stats officielles Battlefield | À rechercher | ⚠️ À vérifier |
-| 🔴 HIGH | **Tracker.gg** | Stats joueurs, loadouts | [Tracker.gg](https://tracker.gg/battlefield-2042) | ⚠️ À vérifier |
-| 🟢 MEDIUM | **Reddit API** (officielle) | Discussions r/Battlefield6 | [Reddit](https://www.reddit.com/r/Battlefield6/) | ✅ API officielle |
-| 🟡 LOW | PC Gamer | Analyses d'armes et loadouts | [PC Gamer](https://www.pcgamer.com/games/fps/battlefield-6-pw7a2-loadout-build) | ❌ Scraping |
-| 🟡 LOW | WZStats | Tier lists, méta actuelle | [WZStats](https://wzstats.gg/battlefield-6/meta) | ❌ Scraping |
-| ⚪ TODO | Skycoach.gg | Guides loadouts | [Skycoach](https://skycoach.gg/blog/battlefield-6/articles/top-loadouts) | ❓ À explorer |
-| ⚪ TODO | Gam3s.gg | Tier lists, méta par patch | [Gam3s](https://gam3s.gg/battlefield-6/guides/ultimate-battlefield-6-weapon-tier-list) | ❓ À explorer |
-| ⚪ TODO | Beebom | Guides best weapons | [Beebom](https://beebom.com/battlefield-6-best-weapons-guns-loadout-guide) | ❓ À explorer |
+**Stratégie validée : Approche hybride**
 
-**📊 Tableau comparatif détaillé** : Voir `docs/SOURCES_EXPLORATION.md`
+| Priorité | Source | Méthode | Rôle | Données fournies |
+|----------|--------|---------|------|------------------|
+| 🔴 **CRITICAL** | **Tracker.gg** | Scraping/API | **Base de données** | Armes, stats, win rates, pick rates |
+| 🔴 **HIGH** | **GameTools API** | API | **Enrichissement** | Accessoires, loadouts détaillés |
+| 🟢 **MEDIUM** | **Reddit API** | API officielle | **Méta communautaire** | Discussions, tendances, feedback joueurs |
+| 🟡 **SUPPORT** | PC Gamer | Scrapy + LLM | **Guides enrichis** | Loadouts recommandés, analyses |
+| 🟡 **SUPPORT** | Skycoach | Scrapy + LLM | **Guides loadouts** | Configurations optimales |
+| 🟡 **SUPPORT** | Gam3s.gg | Scrapy + LLM | **Tier lists** | Classements armes par patch |
 
-**⏳ État** : Phase d'exploration (2-3 jours) → Choix des 5 sources finales → Implémentation
+**Workflow de traitement** :
+1. **Tracker.gg** → Données structurées (JSON/API) → BigQuery Bronze
+2. **GameTools** → API REST → Accessoires détaillés → BigQuery Bronze
+3. **Articles** → HTML brut → MinIO → LLM Processing → BigQuery Bronze
+4. **DBT Silver** → Fusion intelligente (Tracker + GameTools + LLM)
+5. **DBT Gold** → Consensus multi-sources avec scoring
 
 **Fréquence de crawling** : Quotidienne (via Airflow DAG), avec respect des `robots.txt` et rate limiting.
 
@@ -132,14 +151,69 @@ Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherc
 
 **Durée estimée** : 2-3 jours d'exploration méthodique
 
-**Checklist** :
-- ⏳ Rechercher API officielle EA/DICE Battlefield
-- ⏳ Tester Tracker.gg (API possible via DevTools)
-- ⏳ Setup Reddit API (officielle, gratuite)
+**Checklist d'exploration** :
+- ⏳ **EA/DICE API officielle** → ❌ Difficile à trouver (pas d'API publique documentée)
+- 🔄 **Tracker.gg** → ✅ Source principale identifiée (voir stratégie ci-dessous)
+- ⏳ **GameTools API** → 🔍 À explorer (potentiel pour granularité accessoires)
+- ⏳ **Steam API** → 🔍 À explorer
+- ⏳ **Reddit API** → ✅ API officielle (gratuite)
 - ⏳ Analyser 10+ sources candidates
 - ⏳ Remplir tableau comparatif (`docs/SOURCES_EXPLORATION.md`)
-- ⏳ Choisir les 5 meilleures sources (API > Scraping)
-- ⏳ Créer plan d'implémentation détaillé
+- ⏳ Finaliser plan d'implémentation
+
+### 🎯 Stratégie d'extraction (Plan actuel)
+
+**Architecture hybride : API + Scraping + LLM enrichissement**
+
+#### 1️⃣ Base de données : Tracker.gg (Source principale)
+- **Méthode** : Scraping via API/DevTools
+- **Données** : Stats armes, méta général, win rates
+- **Avantage** : Structure propre et format idéal
+- **Limitation** : ⚠️ Manque granularité accessoires/loadouts complets
+
+#### 2️⃣ Enrichissement granulaire : GameTools + Sites communautaires
+- **Objectif** : Récupérer détails des loadouts (accessoires, attachments)
+- **Sources** : 
+  - GameTools (API potentielle à explorer)
+  - Articles guides (PC Gamer, Skycoach, Gam3s)
+- **Méthode** : Scraping HTML complet
+
+#### 3️⃣ Extraction intelligente : LLM Processing
+- **Processus** : 
+  1. Crawler HTML complet des articles
+  2. Passer l'intégralité du HTML dans un LLM (GPT-4, Claude)
+  3. Extraire mots-clés structurés (arme, accessoires, stats, recommandations)
+  4. Ranger dans tables définies (schema BigQuery)
+
+**Workflow complet** :
+```
+1. Tracker.gg (API/Scraping)
+   └─> Données BASE : Armes, stats, win rates
+   
+2. GameTools + Articles (Scraping)
+   └─> HTML brut → MinIO (Bronze)
+   
+3. LLM Extraction (GPT-4)
+   └─> HTML → JSON structuré (accessoires, loadouts)
+   
+4. Fusion intelligente (DBT Silver)
+   └─> Base Tracker.gg + Enrichissement LLM
+   
+5. Tables Gold (BigQuery)
+   └─> Loadouts complets avec consensus multi-sources
+```
+
+**Avantages approche hybride** :
+- ✅ Base solide avec Tracker.gg (données fiables)
+- ✅ Granularité maximale via LLM (extraction intelligente)
+- ✅ Consensus multi-sources (croiser Tracker + Articles)
+- ✅ Flexibilité (LLM s'adapte aux changements de HTML)
+
+**Technologies prévues** :
+- `Scrapy` : Crawler Tracker.gg + articles
+- `LangChain` : Orchestration LLM
+- `OpenAI API` (GPT-4) : Extraction structurée HTML → JSON
+- `DBT` : Fusion et consensus des sources
 
 **Livrables** :
 ```
@@ -156,31 +230,215 @@ Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherc
 ---
 
 ### 🔄 **Phase 1 : Extraction** (APRÈS Phase 0.5)
-**Dépend des résultats de l'exploration**
+**Approche hybride : API Tracker.gg + Scraping enrichi par LLM**
 
-**Scénario optimal (si APIs trouvées)** :
-- 3 APIs (EA, Tracker, Reddit) + 2 spiders Scrapy (complément)
-- Temps estimé : 6-8 heures (vs 15h avec 5 spiders)
-- Stabilité : ★★★★★
-
-**Structure prévue** :
+**Architecture prévue** :
 ```
 /extract/
-├── apis/                      # Clients API (si trouvés)
-│   ├── ea_client.py          # API EA/DICE
-│   ├── tracker_client.py     # Tracker.gg
+├── apis/                      # Clients API
+│   ├── tracker_client.py     # Tracker.gg (base de données)
+│   ├── gametools_client.py   # GameTools API (accessoires)
 │   └── reddit_client.py      # Reddit API (praw)
-├── spiders/                   # Scrapy (complément)
-│   ├── pcgamer_spider.py     ✅ Déjà fait
-│   └── ...                   # Selon findings
+├── spiders/                   # Scrapy crawlers
+│   ├── pcgamer_spider.py     ✅ Fait
+│   ├── skycoach_spider.py    # Guides loadouts
+│   └── gam3s_spider.py       # Tier lists
+├── llm/                       # Extraction intelligente
+│   ├── html_processor.py     # LangChain + GPT-4
+│   └── schema_mapper.py      # HTML → JSON structuré
 └── README.md
 ```
 
-**Actions** :
-- Implémenter clients API trouvés (priorité #1)
-- Créer spiders Scrapy pour sources sans API
-- Script `upload_to_minio.py` (Bronze layer)
-- Tests complets de toutes les sources
+**Workflow d'extraction** :
+1. **Tracker.gg** (Scraping/API) → Base de données armes/stats
+2. **GameTools** (API) → Détails accessoires/loadouts
+3. **Articles guides** (Scrapy) → HTML brut → MinIO
+4. **LLM Processing** → HTML → JSON structuré (accessoires, recommandations)
+5. **Upload MinIO** → Bronze layer (tout conservé)
+
+**Temps estimé** : 
+- Tracker.gg scraper : 3-4 heures
+- GameTools API : 2-3 heures
+- LLM extraction : 4-5 heures
+- Scripts upload : 1-2 heures
+- **Total** : ~10-14 heures
+
+---
+
+### 📊 **Schéma de données prévu (BigQuery)**
+
+#### Bronze Layer (Raw data)
+```sql
+-- Table : bronze_tracker_weapons
+CREATE TABLE bronze_tracker_weapons (
+  weapon_name STRING,
+  weapon_type STRING,
+  damage INT64,
+  fire_rate INT64,
+  accuracy FLOAT64,
+  win_rate FLOAT64,
+  pick_rate FLOAT64,
+  crawled_at TIMESTAMP,
+  source STRING
+);
+
+-- Table : bronze_html_articles
+CREATE TABLE bronze_html_articles (
+  article_url STRING,
+  html_content STRING,
+  source_site STRING,
+  crawled_at TIMESTAMP
+);
+```
+
+#### Silver Layer (Cleaned & enriched)
+```sql
+-- Table : silver_weapons
+CREATE TABLE silver_weapons (
+  weapon_id STRING,
+  weapon_name_normalized STRING,  -- PW7A2 = MP7
+  weapon_category STRING,          -- AR, SMG, Sniper, etc.
+  base_stats STRUCT<
+    damage INT64,
+    fire_rate INT64,
+    accuracy FLOAT64,
+    range INT64
+  >,
+  meta_score FLOAT64,              -- Score consensuel
+  data_quality_score FLOAT64,      -- Fiabilité source
+  last_updated TIMESTAMP
+);
+
+-- Table : silver_loadouts (extraction LLM)
+CREATE TABLE silver_loadouts (
+  loadout_id STRING,
+  weapon_id STRING,
+  attachments ARRAY<STRUCT<
+    slot STRING,                   -- Optic, Barrel, Magazine, etc.
+    item STRING,                   -- Red Dot, Extended Mag, etc.
+    impact STRING                  -- +Accuracy, +Range, etc.
+  >>,
+  recommended_by ARRAY<STRING>,    -- Sources qui recommandent
+  confidence_score FLOAT64,        -- Score LLM
+  extracted_at TIMESTAMP
+);
+```
+
+#### Gold Layer (KPIs & Analytics)
+```sql
+-- Table : gold_meta_consensus
+CREATE TABLE gold_meta_consensus (
+  weapon_name STRING,
+  overall_rank INT64,
+  meta_score FLOAT64,
+  best_loadout STRUCT<
+    attachments ARRAY<STRING>,
+    sources ARRAY<STRING>,
+    consensus_level STRING        -- High, Medium, Low
+  >,
+  win_rate_avg FLOAT64,
+  pick_rate_avg FLOAT64,
+  trend STRING,                   -- Rising, Stable, Falling
+  last_patch_impact FLOAT64,
+  updated_at TIMESTAMP
+);
+```
+
+---
+
+### 🤖 **Extraction intelligente par LLM**
+
+**Processus d'extraction HTML → JSON structuré**
+
+#### Étape 1 : Crawling HTML brut
+```python
+# Scrapy crawl articles guides
+scrapy crawl pcgamer -o data/outputs/pcgamer_articles.json
+
+# Output : HTML complet sauvegardé
+{
+  "url": "https://pcgamer.com/battlefield-loadout-guide",
+  "html_content": "<html>...</html>",
+  "crawled_at": "2025-10-16T10:30:00"
+}
+```
+
+#### Étape 2 : Traitement LLM (GPT-4 / Claude)
+```python
+# LangChain + OpenAI API
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+
+# Prompt structuré
+prompt = """
+Analyse cet article HTML Battlefield et extrais les informations structurées.
+
+HTML : {html_content}
+
+Extrais au format JSON :
+{
+  "weapons": [
+    {
+      "name": "nom exact de l'arme",
+      "category": "AR/SMG/Sniper/LMG",
+      "recommended_loadout": {
+        "optic": "...",
+        "barrel": "...",
+        "magazine": "...",
+        "underbarrel": "...",
+        "stock": "..."
+      },
+      "pros": ["avantage 1", "avantage 2"],
+      "cons": ["inconvénient 1"],
+      "best_for": "situation/style de jeu",
+      "meta_tier": "S/A/B/C",
+      "confidence": 0.0-1.0
+    }
+  ]
+}
+
+Règles :
+- Extrais SEULEMENT les informations explicitement mentionnées
+- Si un accessoire n'est pas mentionné, utilise null
+- confidence = fiabilité de l'extraction (1.0 = très sûr)
+"""
+
+# Exécution
+llm = ChatOpenAI(model="gpt-4")
+response = llm.predict(prompt.format(html_content=html))
+structured_data = json.loads(response)
+```
+
+#### Étape 3 : Validation et stockage
+```python
+# Validation schema Pydantic
+from pydantic import BaseModel, Field
+
+class WeaponLoadout(BaseModel):
+    name: str
+    category: str
+    recommended_loadout: dict
+    confidence: float = Field(ge=0.0, le=1.0)
+
+# Stockage BigQuery
+validated_data = WeaponLoadout(**structured_data)
+upload_to_bigquery(validated_data, table="bronze_llm_extractions")
+```
+
+#### Avantages de l'approche LLM :
+- ✅ **Flexibilité** : S'adapte aux changements de HTML
+- ✅ **Granularité** : Capture nuances (pros/cons, contexte)
+- ✅ **Multi-sources** : Unifie formats différents
+- ✅ **Confidence scoring** : Mesure fiabilité extraction
+- ✅ **NLP avancé** : Comprend recommandations implicites
+
+**Coût estimé** :
+- GPT-4 : ~$0.03 / 1K tokens
+- Article moyen : ~10K tokens
+- **Coût par article** : ~$0.30
+- **50 articles/mois** : ~$15/mois
+
+**Alternative gratuite** : Open-source LLM (Llama 3, Mistral) via Ollama
 
 ---
 
@@ -190,10 +448,15 @@ Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherc
 - Service Account pour authentification
 - Installer DBT (`pip install dbt-bigquery`)
 - Configurer `dbt/profiles.yml`
-- Créer modèles Bronze (MinIO → BigQuery raw)
-- Modèles Silver : Nettoyage et normalisation
+- **Créer modèles Bronze** :
+  - `bronze_tracker_weapons.sql` : Import Tracker.gg
+  - `bronze_html_articles.sql` : Import HTML brut
+  - `bronze_llm_extractions.sql` : Import résultats LLM
+- **Modèles Silver** : Nettoyage et normalisation
   - Suppression doublons
-  - Normalisation noms d'armes
+  - Normalisation noms d'armes (PW7A2 → MP7)
+  - **Fusion intelligente** : Tracker.gg (stats) + LLM (loadouts)
+  - Calcul consensus multi-sources
   - Typage et validation
 
 ---
