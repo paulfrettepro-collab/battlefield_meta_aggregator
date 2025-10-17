@@ -1,5 +1,7 @@
 # 🎮 Battlefield Meta Aggregator
 
+**💡Idées** 
+Sur tracker GG scrapper les statistiques du top 10 des joueurs et récupérer l'information sur leur loadout. Demander à l'iA combien faudrait t'il de joueurs pour établir un concensus pertinent sur le loadout optimal pour les joueurs ? Faire un petit datapipeline dans ce cas pour afficher uniquement ces data mais à jour tous les jours. Le but est de scarpper les emplacement du classement de tracker GG et de l'afficher avec le loadout sur une interfance web optimale. Peux-être utilisé une IA qui s'occupera de l'analyse du JSON pour rétablir une réponse cohérente. Anonymisée le nom des joueurs et faire un top 3 des trois meilleurs loadouts utilisé. A terme augmenter les résultats en affichant une comparaison du nb de kill avec telle ou telle arme.  
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
 ---
