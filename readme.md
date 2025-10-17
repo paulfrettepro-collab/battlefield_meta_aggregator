@@ -1,7 +1,7 @@
 # 🎮 Battlefield Meta Aggregator
 
 **💡Idées** 
-Chaque jour, échantillonner 100 joueurs du leaderboard Tracker.gg, récupérer leur loadout par arme, anonymiser les pseudos, calculer les combinaisons d’accessoires les plus fréquentes et afficher un top 3 par arme dans une petite UI. Pipeline: Scrapy → MinIO (Bronze, NDJSON) → BigQuery → DBT (Silver/Gold) → Streamlit. Orchestration quotidienne via Airflow.
+Chaque jour, échantillonner 100 joueurs du leaderboard d'un site spécialisé, récupérer leur loadout par arme, anonymiser les pseudos, calculer les combinaisons d’accessoires les plus fréquentes et afficher un top 3 par arme dans une petite UI. Pipeline: Scrapy → MinIO (Bronze, NDJSON) → BigQuery → DBT (Silver/Gold) → Streamlit. Orchestration quotidienne via Airflow.
 
 **Ce qu’il faut scraper précisément**
 	1.	leaderboard players
