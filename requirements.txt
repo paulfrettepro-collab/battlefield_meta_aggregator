@@ -1,27 +1,16 @@
 # ============================================
-# Requirements.txt - Backend Python
+# Requirements.txt - Battlefield Meta Aggregator
 # ============================================
-# Dépendances pour le projet Battlefield Meta Aggregator
+# Pipeline ELT : Scrapy → MinIO → BigQuery → DBT → Streamlit
 
 # ============================================
-# CORE API
+# WEB CRAWLING & EXTRACTION
 # ============================================
-fastapi==0.104.1          # Framework API REST moderne
-uvicorn[standard]==0.24.0 # Serveur ASGI pour FastAPI
-pydantic==2.5.0           # Validat
-ion de données
-python-multipart==0.0.6   # Support upload fichiers (optionnel)
-
-# ============================================
-# WEB CRAWLING (SCRAPY FRAMEWORK)
-# ============================================
-scrapy==2.11.0            # Framework de crawling professionnel
-scrapy-playwright==0.0.34 # Support JavaScript avec Playwright
+scrapy==2.11.0            # Framework de crawling Tracker.gg
+scrapy-playwright==0.0.34 # Support JavaScript (si nécessaire)
 playwright==1.40.0        # Navigateur headless pour sites dynamiques
-scrapy-user-agents==0.1.1 # Rotation user-agents automatique
-scrapy-rotating-proxies==0.6.2  # Rotation proxies (optionnel)
-requests==2.31.0          # Requêtes HTTP simples (fallback)
-beautifulsoup4==4.12.2    # Parsing HTML simple
+requests==2.31.0          # Requêtes HTTP pour APIs
+beautifulsoup4==4.12.2    # Parsing HTML (exploration)
 lxml==4.9.3               # Parser rapide pour BeautifulSoup
 
 # ============================================
