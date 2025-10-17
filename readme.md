@@ -1,7 +1,28 @@
 # 🎮 Battlefield Meta Aggregator
 
 **💡Idées** 
-Sur tracker GG scrapper les statistiques du top 10 des joueurs et récupérer l'information sur leur loadout. Demander à l'iA combien faudrait t'il de joueurs pour établir un concensus pertinent sur le loadout optimal pour les joueurs ? Faire un petit datapipeline dans ce cas pour afficher uniquement ces data mais à jour tous les jours. Le but est de scarpper les emplacement du classement de tracker GG et de l'afficher avec le loadout sur une interfance web optimale. Peux-être utilisé une IA qui s'occupera de l'analyse du JSON pour rétablir une réponse cohérente. Anonymisée le nom des joueurs et faire un top 3 des trois meilleurs loadouts utilisé. A terme augmenter les résultats en affichant une comparaison du nb de kill avec telle ou telle arme.  
+Chaque jour, échantillonner 100 joueurs du leaderboard Tracker.gg, récupérer leur loadout par arme, anonymiser les pseudos, calculer les combinaisons d’accessoires les plus fréquentes et afficher un top 3 par arme dans une petite UI. Pipeline: Scrapy → MinIO (Bronze, NDJSON) → BigQuery → DBT (Silver/Gold) → Streamlit. Orchestration quotidienne via Airflow.
+
+**Ce qu’il faut scraper précisément**
+	1.	leaderboard players
+champs: rank, username, platform, url_profil.
+cible: page classement par plateforme/mode.
+indicateurs Scrapy: sélecteurs CSS/XPath pour les lignes du tableau + lien profil.
+	2.	player loadouts
+champs: weapon, attachments [optic, barrel, magazine, underbarrel, stock…], timestamp, source_url.
+cible: page profil joueur (onglet stats/loadout).
+indicateurs Scrapy: sélecteurs CSS/XPath ciblant les blocs armes et leurs accessoires.
+bonus: si la page charge un JSON via XHR, viser directement l’endpoint JSON plutôt que le HTML (plus fiable).
+**astuces sélecteurs (à adapter via DevTools)**
+– repère les blocs parent: data-testid, aria-label, classes stables.
+– exemple générique:
+ligne joueur: div.player-row
+pseudo: div.username::text
+lien profil: a.player-link::attr(href)
+bloc arme: section.weapon-card
+nom arme: h3.weapon-name::text
+accessoire: li.attachment .name::text
+
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
 ---
