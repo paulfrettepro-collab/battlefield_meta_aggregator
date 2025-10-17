@@ -1,5 +1,5 @@
 """
-Client API/Scraper pour Tracker.gg Battlefield 2042
+Client API/Scraper pour Tracker.gg Battlefield 6
 
 Source principale pour :
 - Leaderboard joueurs (top 100)
@@ -21,9 +21,9 @@ import time
 
 
 class TrackerGGClient:
-    """Client pour interagir avec Tracker.gg BF2042"""
+    """Client pour interagir avec Tracker.gg Battlefield 6"""
     
-    BASE_URL = "https://tracker.gg/battlefield-2042"
+    BASE_URL = "https://tracker.gg/bf6"
     
     def __init__(self, rate_limit_delay: float = 1.0):
         """

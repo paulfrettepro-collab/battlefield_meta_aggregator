@@ -1,4 +1,4 @@
-# 🔍 Guide d'Exploration Tracker.gg Battlefield 2042
+# 🔍 Guide d'Exploration Tracker.gg Battlefield 6
 
 **Objectif** : Identifier précisément comment extraire les données du leaderboard et des loadouts
 
@@ -8,7 +8,7 @@
 
 ### ✅ Étape 1 : Analyser le Leaderboard
 
-**URL cible** : https://tracker.gg/battlefield-2042/leaderboards/stats/all/default
+**URL cible** : https://tracker.gg/bf6/leaderboards
 
 1. **Ouvrir la page dans le navigateur**
 2. **Ouvrir DevTools** (F12 ou Cmd+Option+I sur Mac)

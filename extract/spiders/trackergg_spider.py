@@ -1,5 +1,5 @@
 """
-Spider Scrapy pour Tracker.gg Battlefield 2042
+Spider Scrapy pour Tracker.gg Battlefield 6
 
 Objectifs :
 1. Extraire le leaderboard (top 100 joueurs)
@@ -25,9 +25,9 @@ class TrackerGGSpider(scrapy.Spider):
     name = "trackergg"
     allowed_domains = ["tracker.gg"]
     
-    # URL de départ - à adapter après exploration
+    # URL de départ - Battlefield 6
     start_urls = [
-        "https://tracker.gg/battlefield-2042/leaderboards/stats/all/default?page=1&platform=pc"
+        "https://tracker.gg/bf6/leaderboards"
     ]
     
     custom_settings = {
@@ -80,7 +80,7 @@ class TrackerGGSpider(scrapy.Spider):
         raise NotImplementedError(
             "⚠️ Ce spider nécessite une exploration préalable de Tracker.gg\n"
             "Actions requises:\n"
-            "1. Visiter https://tracker.gg/battlefield-2042/leaderboards\n"
+            "1. Visiter https://tracker.gg/bf6/leaderboards\n"
             "2. Ouvrir DevTools (F12) > Elements\n"
             "3. Identifier les sélecteurs CSS pour:\n"
             "   - Lignes du tableau leaderboard\n"

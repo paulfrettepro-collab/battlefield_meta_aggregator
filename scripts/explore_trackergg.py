@@ -1,5 +1,5 @@
 """
-Script d'exploration automatique de Tracker.gg Battlefield 2042
+Script d'exploration automatique de Tracker.gg Battlefield 6
 
 Ce script visite les pages clés et génère un rapport d'exploration
 pour identifier les sélecteurs CSS et la structure des données.
@@ -18,7 +18,7 @@ from pathlib import Path
 class TrackerGGExplorer:
     """Explorateur automatique de Tracker.gg"""
     
-    BASE_URL = "https://tracker.gg/battlefield-2042"
+    BASE_URL = "https://tracker.gg/bf6"
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
     }
@@ -96,7 +96,7 @@ class TrackerGGExplorer:
         """
         print("\n⚠️ Exploration de profil nécessite une URL valide")
         print("👉 Action manuelle requise :")
-        print("   1. Visitez https://tracker.gg/battlefield-2042/leaderboards")
+        print("   1. Visitez https://tracker.gg/bf6/leaderboards")
         print("   2. Cliquez sur un joueur")
         print("   3. Notez l'URL du profil")
         print("   4. Inspectez la structure HTML (DevTools)")
@@ -157,7 +157,7 @@ class TrackerGGExplorer:
     
     def run(self):
         """Exécute l'exploration complète"""
-        print("🚀 Début de l'exploration de Tracker.gg Battlefield 2042\n")
+        print("🚀 Début de l'exploration de Tracker.gg Battlefield 6\n")
         
         self.check_robots_txt()
         self.explore_leaderboard()
