@@ -1,223 +1,518 @@
-# 🎮 Battlefield Meta Aggregator
+# 🎮 Battlefield 6 Meta Aggregator# 🎮 Battlefield Meta Aggregator
 
-**💡Idées** 
+
+
+> **Projet ELT complet** : Extraction automatisée du leaderboard Battlefield 6, analyse des performances et visualisation des métas.**💡Idées** 
+
 Chaque jour, échantillonner 100 joueurs du leaderboard d'un site spécialisé, récupérer leur loadout par arme, anonymiser les pseudos, calculer les combinaisons d’accessoires les plus fréquentes et afficher un top 3 par arme dans une petite UI. Pipeline: Scrapy → MinIO (Bronze, NDJSON) → BigQuery → DBT (Silver/Gold) → Streamlit. Orchestration quotidienne via Airflow.
 
-**Ce qu’il faut scraper précisément**
-	1.	leaderboard players
+[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+
+[![Scrapy](https://img.shields.io/badge/Scrapy-2.11-green.svg)](https://scrapy.org/)**Ce qu’il faut scraper précisément**
+
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)	1.	leaderboard players
+
 champs: rank, username, platform, url_profil.
-cible: page classement par plateforme/mode.
+
+**Projet personnel d'ELT & Data Engineering — par Paul Fretté**cible: page classement par plateforme/mode.
+
 indicateurs Scrapy: sélecteurs CSS/XPath pour les lignes du tableau + lien profil.
-	2.	player loadouts
+
+---	2.	player loadouts
+
 champs: weapon, attachments [optic, barrel, magazine, underbarrel, stock…], timestamp, source_url.
-cible: page profil joueur (onglet stats/loadout).
+
+## 🎯 Objectifcible: page profil joueur (onglet stats/loadout).
+
 indicateurs Scrapy: sélecteurs CSS/XPath ciblant les blocs armes et leurs accessoires.
-bonus: si la page charge un JSON via XHR, viser directement l’endpoint JSON plutôt que le HTML (plus fiable).
+
+Chaque jour, échantillonner **100 joueurs** du leaderboard Battlefield 6 (tracker.gg), récupérer leurs statistiques, anonymiser les pseudos, et analyser les tendances de performance.bonus: si la page charge un JSON via XHR, viser directement l’endpoint JSON plutôt que le HTML (plus fiable).
+
 **astuces sélecteurs (à adapter via DevTools)**
-– repère les blocs parent: data-testid, aria-label, classes stables.
-– exemple générique:
+
+**Pipeline complet** : Selenium/API → MinIO (Bronze, NDJSON) → BigQuery → DBT (Silver/Gold) → Streamlit  – repère les blocs parent: data-testid, aria-label, classes stables.
+
+**Orchestration** : Apache Airflow (exécution quotidienne automatisée)– exemple générique:
+
 ligne joueur: div.player-row
-pseudo: div.username::text
+
+---pseudo: div.username::text
+
 lien profil: a.player-link::attr(href)
-bloc arme: section.weapon-card
+
+## ✅ Statut Actuelbloc arme: section.weapon-card
+
 nom arme: h3.weapon-name::text
-accessoire: li.attachment .name::text
 
-**Projet personnel d'ELT & Data Engineering — par Paul Fretté**
+### Phase 0.5 - Extraction ✅ **COMPLÈTE**accessoire: li.attachment .name::text
 
----
+- [x] Exploration Tracker.gg réussie
 
-## 🧠 Problématique
+- [x] Tests API Tracker.gg (en attente activation clé)**Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
-**Comment aider les joueurs de Battlefield à améliorer leur performance grâce à l'analyse multi-source de données issues de la communauté (statistiques, loadouts, cartes, métas) ?**
+- [x] Script Selenium développé et testé
+
+- [x] **100 joueurs extraits avec succès**---
+
+- [x] Anonymisation SHA256 implémentée
+
+- [x] Format NDJSON (BigQuery-ready)## 🧠 Problématique
+
+
+
+**📂 Dernier fichier** : `data/bronze/bf6_leaderboard_2025-10-18_174621.ndjson`  **Comment aider les joueurs de Battlefield à améliorer leur performance grâce à l'analyse multi-source de données issues de la communauté (statistiques, loadouts, cartes, métas) ?**
+
+**📊 Résultat** : 100 joueurs, 5,068,303 kills totaux, moyenne 50,683 kills/joueur
 
 L'objectif est de construire un **pipeline ELT complet et automatisé** pour :
-- ✅ **Extraire** des données de performance et de stratégie issues de plusieurs sources (sites communautaires, forums, guides)
+
+### ⚠️ PRIORITÉ #1 : Re-tester API Tracker.gg- ✅ **Extraire** des données de performance et de stratégie issues de plusieurs sources (sites communautaires, forums, guides)
+
 - ✅ **Stocker** les données brutes dans MinIO (Data Lake Bronze)
-- ✅ **Charger** dans BigQuery pour analyse et transformation
+
+La clé API est stockée dans `.env` mais retourne actuellement des erreurs 401.- ✅ **Charger** dans BigQuery pour analyse et transformation
+
 - ✅ **Transformer** avec DBT Core (modèles Bronze → Silver → Gold)
-- ✅ **Présenter** via une interface Streamlit interactive et en temps réel
 
-**Mise à jour automatique** : Pipeline orchestré par Apache Airflow (runs quotidiens), 100% open source
+**Actions** :- ✅ **Présenter** via une interface Streamlit interactive et en temps réel
 
----
+1. Attendre 24-48h après création
 
-## 🏗️ Architecture du pipeline ELT
+2. Retester : `python scripts/test_api.py`**Mise à jour automatique** : Pipeline orchestré par Apache Airflow (runs quotidiens), 100% open source
+
+3. Si l'API fonctionne → Migrer vers extraction API (plus rapide/stable)
+
+4. Si l'API échoue → Continuer avec Selenium---
+
+
+
+---## 🏗️ Architecture du Pipeline
+
+
+
+## 🏗️ Architecture```
+
+┌─────────────────────────────────────────────────────────────────┐
+
+```│                     SOURCES DE DONNÉES                           │
+
+┌─────────────────────────────────────────────────────────────┐│  • Tracker.gg (Leaderboard + Stats)                             │
+
+│               TRACKER.GG (Source de données)                 ││  • API Tracker.gg (en attente activation)                        │
+
+│  • Leaderboard BF6                                           │└─────────────────┬───────────────────────────────────────────────┘
+
+│  • API (en attente) ou Selenium (actuel)                     │                  │
+
+└─────────────────┬───────────────────────────────────────────┘                  │ Selenium/Scrapy (extraction quotidienne)
+
+                  │                  ▼
+
+                  ▼┌─────────────────────────────────────────────────────────────────┐
+
+┌─────────────────────────────────────────────────────────────┐│              BRONZE LAYER - Data Lake (MinIO)                    │
+
+│           BRONZE LAYER - Data Lake (MinIO)                   ││  • Stockage fichiers bruts NDJSON                                │
+
+│  • NDJSON: bf6_leaderboard_YYYY-MM-DD.ndjson                 ││  • data/bronze/bf6_leaderboard_YYYY-MM-DD.ndjson                 │
+
+│  • Anonymisation SHA256                                      ││  • Partition par date                                            │
+
+└─────────────────┬───────────────────────────────────────────┘└─────────────────┬───────────────────────────────────────────────┘
+
+                  │                  │
+
+                  ▼                  │ Load to BigQuery
+
+┌─────────────────────────────────────────────────────────────┐                  ▼
+
+│         SILVER LAYER - BigQuery + DBT                        │┌─────────────────────────────────────────────────────────────────┐
+
+│  • Nettoyage, typage, déduplication                          ││            SILVER LAYER - BigQuery + DBT                         │
+
+│  • Calculs KPIs (K/D, trends)                                ││  • Nettoyage et typage des données                               │
+
+└─────────────────┬───────────────────────────────────────────┘│  • Déduplication des joueurs                                     │
+
+                  ││  • Calculs KPIs (K/D, trends, rankings)                          │
+
+                  ▼└─────────────────┬───────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐                  │
+
+│           GOLD LAYER - BigQuery (Tables finales)             │                  │ DBT transformations
+
+│  • Métriques agrégées                                        │                  ▼
+
+│  • Top performers, évolutions                                │┌─────────────────────────────────────────────────────────────────┐
+
+└─────────────────┬───────────────────────────────────────────┘│              GOLD LAYER - BigQuery (Tables finales)              │
+
+                  ││  • Métriques agrégées par jour/semaine/mois                      │
+
+                  ▼│  • Top performers, évolutions, statistiques                      │
+
+┌─────────────────────────────────────────────────────────────┐│  • Tables optimisées pour dashboard                              │
+
+│              DASHBOARD - Streamlit                           │└─────────────────┬───────────────────────────────────────────────┘
+
+│  • Visualisation interactive                                 │                  │
+
+│  • Filtres, graphiques, trends                               │                  │ SQL queries
+
+└─────────────────────────────────────────────────────────────┘                  ▼
+
+                  ▲┌─────────────────────────────────────────────────────────────────┐
+
+                  ││                 DASHBOARD - Streamlit                            │
+
+┌─────────────────┴───────────────────────────────────────────┐│  • Visualisation interactive                                     │
+
+│        ORCHESTRATION - Apache Airflow                        ││  • Filtres par date, top N, statistiques                         │
+
+│  • Exécution quotidienne                                     ││  • Graphiques trends et comparaisons                             │
+
+└─────────────────────────────────────────────────────────────┘└─────────────────────────────────────────────────────────────────┘
+
+```                  ▲
+
+                  │
+
+---┌─────────────────┴───────────────────────────────────────────────┐
+
+│           ORCHESTRATION - Apache Airflow                         │
+
+## 🚀 Démarrage Rapide│  • Exécution quotidienne automatique                             │
+
+│  • DAG : Extract → Upload → Transform → Update                  │
+
+### Prérequis└─────────────────────────────────────────────────────────────────┘
+
+```bash```
+
+# Python 3.12+
+
+python --version---
+
+
+
+# Packages requis## ⚙️ Stack Technique
+
+pip install -r requirements.txt
+
+| Composant          | Technologie                    | Rôle                                      |
+
+# Docker (pour MinIO/Airflow - optionnel Phase 1)|--------------------|--------------------------------|-------------------------------------------|
+
+docker --version| **Extraction**     | `Selenium` + `Scrapy`          | Scraping Tracker.gg leaderboard           |
+
+```| **API Client**     | `requests` + `python-dotenv`   | Tests API Tracker.gg (en attente)         |
+
+| **Storage Bronze** | `MinIO` (S3-compatible)        | Data Lake NDJSON (fichiers bruts)         |
+
+### Extraction des données (READY ✅)| **Data Warehouse** | `Google BigQuery`              | Entrepôt cloud SQL, gratuit jusqu'à 1TB   |
+
+| **Transformation** | `DBT Core`                     | Modèles SQL Bronze → Silver → Gold        |
+
+```bash| **Visualisation**  | `Streamlit`                    | Dashboard interactif Python               |
+
+# Méthode 1 : Selenium (ACTUEL - fonctionne)| **Orchestration**  | `Apache Airflow`               | Automatisation quotidienne (DAGs)         |
+
+python scripts/extract_bf6_final.py| **Containerisation**| `Docker` + `docker-compose`   | MinIO, Airflow, environnement isolé       |
+
+| **Versioning**     | `Git` + `GitHub`               | Code versionné, collaboration             |
+
+# Méthode 2 : API Tracker.gg (À retester - PRIORITÉ)- **GPT-4** : Extraction structurée des articles HTML (loadouts, accessoires)
+
+# 1. Vérifier .env contient TRACKER_GG_API_KEY- **Alternative gratuite** : Llama 3 / Mistral via Ollama (local)
+
+# 2. Tester :- **Coût** : ~$15/mois pour 50 articles (ou gratuit avec Ollama)
+
+python scripts/test_api.py---
+
+```---
+
+
+
+**📂 Résultat** : `data/bronze/bf6_leaderboard_YYYY-MM-DD.ndjson`## 🚀 Démarrage Rapide
+
+
+
+---### Prérequis
+
+```bash
+
+## 📁 Structure du Projet# Python 3.12+
+
+python --version
 
 ```
-            +-------------------+
-            | Sources données   |
-            |  Tracker.gg (API) |
-            |  GameTools (API)  |
-            |  Articles guides  |
-            +--------+----------+
-                     |
-                     | Scrapy + APIs
-                     ▼
-            +-------------------+
-            |   Bronze Layer    |  ← MinIO (Raw HTML/JSON)
-            |   (Data Lake)     |     Stockage fichiers bruts
-            +--------+----------+
-                     |
-                     | Load + LLM Processing
-                     ▼
-            +-------------------+
-            | LLM Extraction    |  ← GPT-4 / Claude
-            | (HTML → JSON)     |     Extraction intelligente
-            +--------+----------+
-                     |
-                     | Structured data
-                     ▼
-            +-------------------+
-            |   Silver Layer    |  ← BigQuery + DBT Core
-            |  (Nettoyé, typé)  |     Transformation SQL
-            |  Fusion sources   |     Tracker + LLM + GameTools
-            +--------+----------+
-                     |
-                     | Modélisation DBT
-                     ▼
-            +-------------------+
-            |    Gold Layer     |  ← BigQuery (Tables finales)
-            | (KPI, Consensus)  |     Méta consensus multi-sources
-            +--------+----------+
-                     |
-                     | Requêtes SQL
-                     ▼
-            +-------------------+
-            |  Dashboard UI     |  ← Streamlit
-            |  (Visualisation)  |     Interface interactive
-            +-------------------+
-                     ▲
-                     |
-            +-------------------+
-            | Apache Airflow    |  ← Orchestrateur
-            | (Automatisation)  |     DAGs quotidiens
-            +-------------------+
+
+battlefield_meta_aggregator/# Packages requis
+
+├── extract/                 # Scrapy configpip install -r requirements.txt
+
+│   ├── spiders/            # Spiders Scrapy
+
+│   └── settings.py         # Configuration# Docker (pour MinIO et Airflow - optionnel pour Phase 1)
+
+├── scripts/                # Scripts productiondocker --version
+
+│   ├── extract_bf6_final.py       # ✅ Selenium (prod)```
+
+│   ├── test_api.py                # Test API
+
+│   └── upload_to_minio.py         # Upload MinIO### Extraction des données (Production Ready ✅)
+
+├── data/
+
+│   ├── bronze/             # ✅ NDJSON extraits```bash
+
+│   └── exploration/        # HTML pour analyse# Méthode 1 : Script Selenium (RECOMMANDÉ - fonctionne actuellement)
+
+├── dbt/                    # Transformations (Phase 2)python scripts/extract_bf6_final.py
+
+├── dashboard/              # Streamlit (Phase 4)
+
+├── airflow/                # DAGs (Phase 5)# Méthode 2 : API Tracker.gg (À retester quand clé activée - PRIORITÉ)
+
+├── docs/                   # Documentation# 1. Vérifier que .env contient TRACKER_GG_API_KEY=votre_clé
+
+│   ├── STATUS_CURRENT.md          # Statut détaillé# 2. Tester la connexion :
+
+│   ├── PREREQUISITES.md           # Guide setuppython scripts/test_api.py
+
+│   └── TRACKER_GG_EXPLORATION.md  # Exploration
+
+├── docker-compose.yml      # MinIO + Airflow# Si l'API fonctionne, implémenter l'extraction API
+
+├── requirements.txt# (Plus rapide et stable que Selenium)
+
+└── .env                    # API keys (gitignored)```
+
 ```
 
-**Innovation clé** : Layer LLM pour extraction intelligente HTML → JSON structuré
+**� Résultat** : `data/bronze/bf6_leaderboard_YYYY-MM-DD.ndjson`
 
 ---
-
-## ⚙️ Stack Technique (100% Open Source)
-
-| Composant         | Technologie                    | Rôle                                                          |
-|-------------------|--------------------------------|---------------------------------------------------------------|
-| **Extraction**    | `Scrapy` + `Playwright`        | Crawler Tracker.gg, GameTools, articles guides                |
-| **Extraction LLM**| `LangChain` + `OpenAI GPT-4`   | Extraction intelligente HTML → JSON structuré (loadouts)      |
-| **Orchestration** | `Apache Airflow`               | Planification DAGs, relances auto, logs, monitoring           |
-| **Storage Bronze**| `MinIO` (S3-compatible)        | Data Lake pour fichiers bruts (HTML, JSON, images)            |
-| **Data Warehouse**| `Google BigQuery`              | Entrepôt de données cloud, SQL performant, gratuit jusqu'à 1TB|
-| **Transformation**| `DBT Core`                     | Modèles SQL (Bronze → Silver → Gold), tests, documentation   |
-| **Visualisation** | `Streamlit`                    | Dashboard interactif Python, filtres dynamiques, temps réel   |
-| **Containerisation**| `Docker` + `docker-compose`  | Environnement reproductible (Airflow, MinIO, DBT)            |
-| **Versioning**    | `Git` + `GitHub`               | Code versionné, CI/CD GitHub Actions                          |
-
-**Nouveauté : Extraction LLM** 🤖
-- **GPT-4** : Extraction structurée des articles HTML (loadouts, accessoires)
-- **Alternative gratuite** : Llama 3 / Mistral via Ollama (local)
-- **Coût** : ~$15/mois pour 50 articles (ou gratuit avec Ollama)
----
-
-## 🌍 Sources de données Battlefield 6
-
-**⚠️ Phase 0.5 en cours : Exploration des sources (APIs > Scraping)**
-
-Les sources ci-dessous sont des **candidats potentiels**. Une **phase de recherche méthodique** est en cours pour :
-1. ✅ Identifier les **APIs officielles** (EA/DICE, Tracker.gg, etc.)
-2. ✅ Tester la disponibilité et qualité des données
-3. ✅ Choisir les **5 meilleures sources** (mix APIs + Scraping)
-
-**📖 Guide complet** : `docs/SOURCES_EXPLORATION.md`
 
 ### Sources finales (après exploration)
 
+## 📊 Exemple de Donnée
+
 **Stratégie validée : Approche hybride**
 
-| Priorité | Source | Méthode | Rôle | Données fournies |
-|----------|--------|---------|------|------------------|
-| 🔴 **CRITICAL** | **Tracker.gg** | Scraping/API | **Base de données** | Armes, stats, win rates, pick rates |
-| 🔴 **HIGH** | **GameTools API** | API | **Enrichissement** | Accessoires, loadouts détaillés |
-| 🟢 **MEDIUM** | **Reddit API** | API officielle | **Méta communautaire** | Discussions, tendances, feedback joueurs |
-| 🟡 **SUPPORT** | PC Gamer | Scrapy + LLM | **Guides enrichis** | Loadouts recommandés, analyses |
-| 🟡 **SUPPORT** | Skycoach | Scrapy + LLM | **Guides loadouts** | Configurations optimales |
-| 🟡 **SUPPORT** | Gam3s.gg | Scrapy + LLM | **Tier lists** | Classements armes par patch |
+```json
 
-**Workflow de traitement** :
-1. **Tracker.gg** → Données structurées (JSON/API) → BigQuery Bronze
-2. **GameTools** → API REST → Accessoires détaillés → BigQuery Bronze
-3. **Articles** → HTML brut → MinIO → LLM Processing → BigQuery Bronze
+{| Priorité | Source | Méthode | Rôle | Données fournies |
+
+  "extraction_date": "2025-10-18T17:46:21",|----------|--------|---------|------|------------------|
+
+  "rank": 1,| 🔴 **CRITICAL** | **Tracker.gg** | Scraping/API | **Base de données** | Armes, stats, win rates, pick rates |
+
+  "username_original": "Happy_3201",| 🔴 **HIGH** | **GameTools API** | API | **Enrichissement** | Accessoires, loadouts détaillés |
+
+  "username_hash": "player_a7f3d891",| 🟢 **MEDIUM** | **Reddit API** | API officielle | **Méta communautaire** | Discussions, tendances, feedback joueurs |
+
+  "stats": {| 🟡 **SUPPORT** | PC Gamer | Scrapy + LLM | **Guides enrichis** | Loadouts recommandés, analyses |
+
+    "kills": 95150,| 🟡 **SUPPORT** | Skycoach | Scrapy + LLM | **Guides loadouts** | Configurations optimales |
+
+    "score": 282| 🟡 **SUPPORT** | Gam3s.gg | Scrapy + LLM | **Tier lists** | Classements armes par patch |
+
+  },
+
+  "source_url": "https://tracker.gg/bf6/leaderboards",**Workflow de traitement** :
+
+  "extraction_method": "selenium_headless"1. **Tracker.gg** → Données structurées (JSON/API) → BigQuery Bronze
+
+}2. **GameTools** → API REST → Accessoires détaillés → BigQuery Bronze
+
+```3. **Articles** → HTML brut → MinIO → LLM Processing → BigQuery Bronze
+
 4. **DBT Silver** → Fusion intelligente (Tracker + GameTools + LLM)
-5. **DBT Gold** → Consensus multi-sources avec scoring
 
-**Fréquence de crawling** : Quotidienne (via Airflow DAG), avec respect des `robots.txt` et rate limiting.
+---5. **DBT Gold** → Consensus multi-sources avec scoring
+
+
+
+## 📋 Roadmap**Fréquence de crawling** : Quotidienne (via Airflow DAG), avec respect des `robots.txt` et rate limiting.
+
+
+
+| Phase | Description | Statut | Durée |---
+
+|-------|-------------|--------|-------|
+
+| **0** | Setup & Config | ✅ 100% | Terminé |## 📊 Données Actuelles
+
+| **0.5** | Extraction | ✅ 100% | Terminé |
+
+| **1** | MinIO Upload | ⏳ 0% | 30 min |### Dernière extraction (18 oct 2025)
+
+| **2** | BigQuery + DBT | ⏳ 0% | 1-2h |- **Fichier** : `data/bronze/bf6_leaderboard_2025-10-18_174621.ndjson`
+
+| **3** | DBT Gold | ⏳ 0% | 2-3h |- **Joueurs** : 100 (Top leaderboard)
+
+| **4** | Dashboard Streamlit | ⏳ 0% | 2h |- **Total Kills** : 5,068,303
+
+| **5** | Airflow | ⏳ 0% | 1h |- **Moyenne** : 50,683 kills/joueur
+
+- **Top 1** : Happy_3201 (95,150 kills)
+
+### Prochaines étapes immédiates- **Format** : NDJSON (1 joueur par ligne, BigQuery-ready)
+
+1. **⚠️ PRIORITÉ** : Retester API Tracker.gg (24-48h après création clé)
+
+2. Installer Docker Desktop### Exemple de donnée
+
+3. Lancer MinIO : `docker compose up -d minio`
+
+4. Upload données : `python scripts/upload_to_minio.py````json
+
+5. Setup BigQuery (Phase 2){
+
+  "extraction_date": "2025-10-18T17:46:21",
+
+---  "rank": 1,
+
+  "username_original": "Happy_3201",
+
+## ⚙️ Stack Technique  "username_hash": "player_a7f3d891",
+
+  "stats": {
+
+| Composant | Technologie | Rôle |    "kills": 95150,
+
+|-----------|-------------|------|    "score": 282
+
+| **Extraction** | Selenium + Scrapy | Scraping leaderboard |  },
+
+| **API** | requests + python-dotenv | Tests API (priorité) |  "source_url": "https://tracker.gg/bf6/leaderboards",
+
+| **Bronze** | MinIO (S3) | Data Lake NDJSON |  "extraction_method": "selenium_headless"
+
+| **Warehouse** | Google BigQuery | SQL cloud gratuit 1TB |}
+
+| **Transform** | DBT Core | Bronze → Silver → Gold |```
+
+| **Viz** | Streamlit | Dashboard Python |
+
+| **Orchestration** | Apache Airflow | Automatisation DAGs |---
+
+| **Container** | Docker | MinIO + Airflow |
+
+## 🌍 Source de Données
 
 ---
 
-## 🧩 Fonctionnalités du pipeline
+### Tracker.gg (Source principale)
 
-## 📋 Feuille de route du projet
+## 📚 Documentation
 
-### ✅ **Phase 0 : Setup & Infrastructure** (TERMINÉE)
-- ✅ Architecture ELT définie (Scrapy → MinIO → BigQuery → DBT → Streamlit)
-- ✅ Stack simplifiée (12 → 5 technologies)
-- ✅ Git configuré correctement (contributions GitHub)
-- ✅ Structure projet organisée (extract/, dbt/, airflow/, dashboard/, data/)
-- ✅ Documentation complète créée (README par dossier)
-- ✅ MinIO configuré dans docker-compose
-- ✅ 2 spiders Scrapy de test (PC Gamer, WZStats)
+**URL** : https://tracker.gg/bf6/leaderboards
 
-### 🔍 **Phase 0.5 : Exploration des sources** (EN COURS - Priorité #1)
-**⚠️ AVANT de développer, identifier les meilleures sources de données**
+| Document | Description |
 
-**Objectif** : Privilégier les APIs (rapide, légal, stable) avant le scraping
+|----------|-------------|**Méthodes d'extraction** :
 
-**Durée estimée** : 2-3 jours d'exploration méthodique
+| [`STATUS_CURRENT.md`](docs/STATUS_CURRENT.md) | État détaillé du projet |1. **🔑 API Tracker.gg** (PRIORITÉ - en attente activation)
 
-**Checklist d'exploration** :
-- ⏳ **EA/DICE API officielle** → ❌ Difficile à trouver (pas d'API publique documentée)
-- 🔄 **Tracker.gg** → ✅ Source principale identifiée (voir stratégie ci-dessous)
-- ⏳ **GameTools API** → 🔍 À explorer (potentiel pour granularité accessoires)
-- ⏳ **Steam API** → 🔍 À explorer
-- ⏳ **Reddit API** → ✅ API officielle (gratuite)
-- ⏳ Analyser 10+ sources candidates
-- ⏳ Remplir tableau comparatif (`docs/SOURCES_EXPLORATION.md`)
-- ⏳ Finaliser plan d'implémentation
+| [`PREREQUISITES.md`](docs/PREREQUISITES.md) | Guide installation |   - Endpoint : `https://public-api.tracker.gg/v2/bf6/`
 
-### 🎯 Stratégie d'extraction (Plan actuel)
+| [`TRACKER_GG_EXPLORATION.md`](docs/TRACKER_GG_EXPLORATION.md) | Exploration source |   - Authentification : Header `TRN-Api-Key`
 
-**Architecture hybride : API + Scraping + LLM enrichissement**
+   - Status : Clé API obtenue, activation en cours
 
-#### 1️⃣ Base de données : Tracker.gg (Source principale)
-- **Méthode** : Scraping via API/DevTools
-- **Données** : Stats armes, méta général, win rates
-- **Avantage** : Structure propre et format idéal
-- **Limitation** : ⚠️ Manque granularité accessoires/loadouts complets
+---   - **⚠️ Action requise** : Retester dans 24-48h
 
-#### 2️⃣ Enrichissement granulaire : GameTools + Sites communautaires
-- **Objectif** : Récupérer détails des loadouts (accessoires, attachments)
-- **Sources** : 
-  - GameTools (API potentielle à explorer)
-  - Articles guides (PC Gamer, Skycoach, Gam3s)
-- **Méthode** : Scraping HTML complet
 
-#### 3️⃣ Extraction intelligente : LLM Processing
-- **Processus** : 
-  1. Crawler HTML complet des articles
-  2. Passer l'intégralité du HTML dans un LLM (GPT-4, Claude)
-  3. Extraire mots-clés structurés (arme, accessoires, stats, recommandations)
-  4. Ranger dans tables définies (schema BigQuery)
 
-**Workflow complet** :
-```
-1. Tracker.gg (API/Scraping)
-   └─> Données BASE : Armes, stats, win rates
-   
-2. GameTools + Articles (Scraping)
-   └─> HTML brut → MinIO (Bronze)
-   
-3. LLM Extraction (GPT-4)
-   └─> HTML → JSON structuré (accessoires, loadouts)
+## 🤝 Contribution2. **🤖 Selenium** (ACTIF - fonctionne)
+
+   - Chrome headless + BeautifulSoup
+
+Projet personnel de Paul Fretté. Suggestions bienvenues via Issues.   - Extraction table HTML
+
+   - Anonymisation SHA256
+
+---   - Script : `scripts/extract_bf6_final.py`
+
+
+
+## 📄 License**Données extraites** :
+
+- Rank (1-100)
+
+MIT License - Voir LICENSE- Username (anonymisé)
+
+- Kills
+
+---- Score/Points
+
+- Date d'extraction
+
+**Dernière mise à jour** : 18 octobre 2025
+
+---
+
+## 📋 Roadmap Complète
+
+### ✅ Phase 0 : Setup (100%)
+- [x] Architecture définie
+- [x] Repository Git configuré
+- [x] Structure projet créée
+- [x] Docker-compose MinIO configuré
+- [x] Documentation complète
+
+### ✅ Phase 0.5 : Extraction (100%)
+- [x] Exploration Tracker.gg
+- [x] Script Selenium développé
+- [x] 100 joueurs extraits (NDJSON)
+- [x] Anonymisation implémentée
+- [ ] **⏳ Test API quand clé activée** (PRIORITÉ #1)
+
+### ⏳ Phase 1 : MinIO Upload (0%)
+**Durée estimée** : 30 minutes
+- [ ] Installer Docker Desktop
+- [ ] Lancer `docker compose up -d minio`
+- [ ] Tester upload : `python scripts/upload_to_minio.py`
+- [ ] Vérifier dans MinIO UI (localhost:9001)
+
+### ⏳ Phase 2 : BigQuery (0%)
+**Durée estimée** : 1-2 heures
+- [ ] Créer projet Google Cloud
+- [ ] Activer BigQuery API
+- [ ] Créer dataset `bf6_meta`
+- [ ] Créer table `bronze_leaderboard`
+- [ ] Load NDJSON → BigQuery
+- [ ] Vérifier données importées
+
+### ⏳ Phase 3 : DBT Transformations (0%)
+**Durée estimée** : 2-3 heures
+- [ ] Installer DBT Core
+- [ ] Configurer profiles.yml (BigQuery)
+- [ ] Créer modèles Bronze → Silver
+- [ ] Créer modèles Silver → Gold
+- [ ] Tests qualité données
+- [ ] Documentation DBT
+
+### ⏳ Phase 4 : Dashboard Streamlit (0%)
+**Durée estimée** : 2 heures
+- [ ] Créer app Streamlit
+- [ ] Connexion BigQuery
+- [ ] Graphique Top 10 joueurs
+- [ ] Évolution temporelle
+- [ ] Filtres interactifs
+- [ ] Déploiement (Streamlit Cloud)
+
+### ⏳ Phase 5 : Airflow Orchestration (0%)
+**Durée estimée** : 1 heure
+- [ ] Configurer Airflow (docker-compose)
+- [ ] Créer DAG extraction quotidienne
+- [ ] Intégration Upload → Transform
+- [ ] Tests exécution automatique
+- [ ] Monitoring et alertes
    
 4. Fusion intelligente (DBT Silver)
    └─> Base Tracker.gg + Enrichissement LLM

@@ -12,6 +12,7 @@ playwright==1.40.0        # Navigateur headless pour sites dynamiques
 requests==2.31.0          # Requêtes HTTP pour APIs
 beautifulsoup4==4.12.2    # Parsing HTML (exploration)
 lxml==4.9.3               # Parser rapide pour BeautifulSoup
+python-dotenv==1.0.0      # Chargement variables d'environnement (.env)
 
 # ============================================
 # VECTOR DATABASE & EMBEDDINGS

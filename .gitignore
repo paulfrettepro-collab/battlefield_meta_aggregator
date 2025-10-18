@@ -132,9 +132,18 @@ logs/
 
 # Données crawlées (JSON, HTML)
 data/outputs/       # Résultats de crawls Scrapy
-data/bronze/        # Données brutes locales
+data/bronze/*.ndjson        # Fichiers NDJSON extraits (sauf README)
+data/exploration/*.html     # Pages HTML explorées
 *.json              # Tous les fichiers JSON (résultats crawls)
 !package.json       # Exception : garder package.json
+
+# Scrapy cache et logs
+extract/.scrapy/
+extract/data/
+extract/logs/
+extract/__pycache__/
+extract/spiders/__pycache__/
+extract/httpcache/
 
 # MinIO local
 data/minio/         # Stockage MinIO local (si utilisé en développement)

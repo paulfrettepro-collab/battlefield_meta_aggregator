@@ -7,17 +7,17 @@
 
 BOT_NAME = 'battlefield_crawler'
 
-SPIDER_MODULES = ['backend.crawler.spiders']
-NEWSPIDER_MODULE = 'backend.crawler.spiders'
+SPIDER_MODULES = ['spiders']
+NEWSPIDER_MODULE = 'spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = 'BattlefieldMetaAggregator/1.0 (+https://github.com/paulfrettepro-collab/battlefield_meta_aggregator)'
+USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 8
+CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -29,7 +29,7 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 1
 # Disable cookies (enabled by default)
 #COOKIES_ENABLED = False
 
-# Disable Telemetry (see https://docs.scrapy.org/en/latest/topics/telemetryconsole.html)
+# Disable Telemetry (see https://docs.scrapy.org/en/latest/topics/telnetryconsole.html)
 TELNETCONSOLE_ENABLED = False
 
 # Override the default request headers:
@@ -41,15 +41,14 @@ DEFAULT_REQUEST_HEADERS = {
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    'backend.crawler.middlewares.BattlefieldSpiderMiddleware': 543,
+#    'middlewares.BattlefieldSpiderMiddleware': 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-DOWNLOADER_MIDDLEWARES = {
-   'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
-   'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
-}
+#DOWNLOADER_MIDDLEWARES = {
+#   'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+#}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
@@ -59,13 +58,9 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = {
-   'backend.crawler.pipelines.CleaningPipeline': 100,
-   'backend.crawler.pipelines.DeduplicationPipeline': 200,
-   'backend.crawler.pipelines.VectorStorePipeline': 300,
-   'backend.crawler.pipelines.SQLServerPipeline': 400,
-   'backend.crawler.pipelines.DataLakePipeline': 500,
-}
+# ITEM_PIPELINES = {
+#    'pipelines.CleaningPipeline': 100,
+# }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -92,12 +87,6 @@ HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 REQUEST_FINGERPRINTER_IMPLEMENTATION = '2.7'
 TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
 FEED_EXPORT_ENCODING = 'utf-8'
-
-# Playwright settings (for JavaScript rendering)
-DOWNLOAD_HANDLERS = {
-    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-}
 
 PLAYWRIGHT_BROWSER_TYPE = "chromium"
 PLAYWRIGHT_LAUNCH_OPTIONS = {
