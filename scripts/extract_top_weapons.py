@@ -12,14 +12,11 @@ avec leurs statistiques (kills, accuracy).
 5. Sauvegarde en NDJSON (1 ligne = 1 joueur)
 """
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from webdriver_manager.chrome import ChromeDriverManager
 import json
 import time
 import random
@@ -29,24 +26,15 @@ import re
 
 
 def setup_browser():
-    """Configure Chrome en mode headless avec anti-détection"""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless=new')
-    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    """Configure undetected-chromedriver pour contourner Cloudflare"""
+    chrome_options = uc.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
     
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-        'source': 'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'
-    })
+    print("🚀 Lancement undetected-chromedriver...")
+    driver = uc.Chrome(options=chrome_options, version_main=None)
+    print("✅ Navigateur prêt (anti-Cloudflare activé)")
     
     return driver
 
@@ -150,7 +138,10 @@ def extract_top_weapons(driver, player_id, handle, url_profil, max_retries=3):
             print(f"\n🔍 [{attempt}/{max_retries}] Visite du profil : {handle} ({player_id})")
             
             driver.get(url_profil)
-            time.sleep(random.uniform(2, 4))
+            
+            # ⚠️ CRITICAL : Attente Cloudflare + chargement complet
+            print("   ⏳ Attente bypass Cloudflare + chargement page (10s)...")
+            time.sleep(10)  # Nécessaire pour undetected-chromedriver
             
             # Cherche le bouton "View All" dans la section Weapons
             try:
@@ -175,48 +166,29 @@ def extract_top_weapons(driver, player_id, handle, url_profil, max_retries=3):
             print(f"   💾 HTML sauvegardé : {debug_file}")
             
             # Parse le texte brut pour trouver les armes
-            # Pattern typique : nom_arme ... Kills XXX ... Accuracy YY.Y%
+            # Stratégie : chercher toutes les images d'armes (pattern wp_XXX.png) + leurs stats
             import re
             weapons = []
+            seen_weapons = set()  # Pour éviter les doublons (lifetime stats vs session stats)
             
-            # Regex pour capturer : Kills suivi d'un nombre avec virgules
-            kills_pattern = r'Kills[:\s]+([0-9,]+)'
-            accuracy_pattern = r'Accuracy[:\s]+([0-9,.]+%?)'
+            # Regex pour trouver : wp_xxx.png" alt="NOM_ARME" ... Kills ... <span>12,251</span>
+            weapon_pattern = r'wp_[^.]+\.png/image\.png" alt="([^"]+)"[^>]*>.*?Kills.*?<span[^>]*>([0-9,]+).*?</span>'
             
-            # Split le HTML par lignes et cherche les patterns
-            lines = page_html.split('\n')
-            current_weapon = None
-            current_kills = None
-            current_accuracy = None
+            matches = re.findall(weapon_pattern, page_html, re.DOTALL)
             
-            for line in lines:
-                # Cherche "Kills"
-                kills_match = re.search(kills_pattern, line)
-                if kills_match:
-                    current_kills = normalize_number(kills_match.group(1))
-                
-                # Cherche "Accuracy"
-                accuracy_match = re.search(accuracy_pattern, line)
-                if accuracy_match:
-                    current_accuracy = normalize_number(accuracy_match.group(1))
-                
-                # Si on a kills ET accuracy, on a probablement une arme complète
-                if current_kills is not None and current_accuracy is not None:
-                    # Le nom de l'arme est souvent dans les 5 lignes précédentes
-                    # On prend la ligne actuelle comme nom temporaire
-                    weapon_name = line.strip()[:50]  # Limite à 50 caractères
-                    
+            print(f"   🔍 {len(matches)} armes trouvées avec regex pattern")
+            
+            for weapon_name, kills_str in matches:
+                # Prend seulement la première occurrence (stats lifetime)
+                if weapon_name not in seen_weapons:
+                    seen_weapons.add(weapon_name)
                     weapons.append({
-                        "name": weapon_name if weapon_name else "Unknown",
-                        "kills": current_kills,
-                        "accuracy_pct": current_accuracy
+                        "name": weapon_name.strip(),
+                        "kills": normalize_number(kills_str),
+                        "accuracy_pct": None  # On extrait juste kills pour l'instant
                     })
-                    
-                    # Reset pour la prochaine arme
-                    current_kills = None
-                    current_accuracy = None
             
-            print(f"   📦 {len(weapons)} armes extraites du HTML brut")
+            print(f"   📦 {len(weapons)} armes uniques extraites (sans doublons)")
             
             # Trie par kills décroissant et prend le top 3
             weapons_sorted = sorted(weapons, key=lambda x: x['kills'], reverse=True)
