@@ -1,0 +1,3 @@
+# Archive folder - exclude all contents from git
+*
+!.gitignore

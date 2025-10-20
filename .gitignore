@@ -118,6 +118,7 @@ docker-compose.override.yml  # Surcharges locales Docker
 # ============================================
 
 logs/
+data/logs/*.log     # Logs d'extraction
 *.log
 *.tmp
 *.temp
@@ -132,8 +133,13 @@ logs/
 
 # Données crawlées (JSON, HTML)
 data/outputs/       # Résultats de crawls Scrapy
-data/bronze/*.ndjson        # Fichiers NDJSON extraits (sauf README)
 data/exploration/*.html     # Pages HTML explorées
+
+# Fichiers NDJSON - garder seulement les fichiers de production
+data/bronze/**/*test*.ndjson        # Exclure fichiers de test
+data/bronze/**/*debug*.ndjson       # Exclure fichiers de debug
+# Note: Les fichiers de production (bf6_top_weapons_*.ndjson) sont versionnés
+
 *.json              # Tous les fichiers JSON (résultats crawls)
 !package.json       # Exception : garder package.json
 
@@ -180,3 +186,12 @@ airflow/webserver_config.py
 
 .streamlit/secrets.toml
 dashboard/.streamlit/
+
+# ============================================
+# 12. NOTES PERSONNELLES (NON VERSIONNÉES)
+# ============================================
+
+cli_git_symboles_vs_code.md
+liste_defis_projet.md
+Prompt_engineering.md
+

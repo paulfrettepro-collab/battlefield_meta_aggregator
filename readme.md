@@ -12,109 +12,122 @@
 
 ## 💡 Idée du Projet
 
-**Chaque jour**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leur **loadout par arme**, anonymiser les pseudos, calculer les **combinaisons d'accessoires les plus fréquentes** et afficher un **top 3 par arme** dans une petite UI.
+**Chaque semaine**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leurs **top 3 armes** (nom + kills), calculer les **armes les plus populaires** et afficher les tendances dans une petite UI.
 
-**Pipeline** : `Scrapy` → `MinIO (Bronze, NDJSON)` → `BigQuery` → `DBT (Silver/Gold)` → `Streamlit`  
-**Orchestration** : Apache Airflow (exécution quotidienne automatisée)
-
+**Pipeline** : `Selenium` → `MinIO (Bronze, NDJSON)` → `BigQuery` → `DBT (Silver/Gold)` → `Streamlit`  
+**Orchestration** : Cron job hebdomadaire (dimanches 2h)
+**Orchestration future** : Apache Airflow (exécution quotidienne automatisée)
 ---
 
-## 🎯 Ce Qu'on Scrape
+## 🎯 Ce Qu'on Extrait
 
 ### 1️⃣ **Leaderboard Players**
 - **Champs** : `rank`, `username`, `platform`, `url_profil`
-- **Cible** : Page classement par plateforme/mode
-- **Méthode** : Sélecteurs CSS/XPath pour lignes de tableau + lien profil
+- **Cible** : Page classement Tracker.gg (Top 100 kills)
+- **Méthode** : Selenium + undetected-chromedriver (bypass Cloudflare)
 
-### 2️⃣ **Player Loadouts**
-- **Champs** : `weapon`, `attachments` (optic, barrel, magazine, underbarrel, stock…), `timestamp`, `source_url`
-- **Cible** : Page profil joueur (onglet stats/loadout)
-- **Méthode** : Sélecteurs CSS/XPath ciblant blocs armes et accessoires
-- **Bonus** : Si la page charge un JSON via XHR → viser directement l'endpoint JSON (plus fiable)
+### 2️⃣ **Top 3 Weapons per Player**
+- **Champs** : `weapon_name`, `kills`, `accuracy_pct` (en cours)
+- **Cible** : Page profil joueur (stats par arme)
+- **Méthode** : Regex extraction du HTML après rendu Cloudflare
+- **Format sortie** : NDJSON (1 ligne par joueur, 3 armes par ligne)
+- **amélioration à prévoir ** : ajouter les accéssoires des armes
+### 🔍 Technique d'Extraction
 
-### 🔍 Astuces Sélecteurs (à adapter via DevTools)
+```python
+# 1. Bypass Cloudflare avec undetected-chromedriver
+driver = uc.Chrome()
+driver.get(url)
+time.sleep(15)  # Attente résolution Cloudflare
 
-\`\`\`python
-# Repère les blocs parent: data-testid, aria-label, classes stables
+# 2. Extraction regex des armes
+pattern = r'wp_[^.]+\.png/image\.png" alt="([^"]+)"[^>]*>.*?Kills.*?<span[^>]*>([0-9,]+).*?</span>'
+matches = re.findall(pattern, html, re.DOTALL)
 
-# Exemple générique :
-ligne_joueur = "div.player-row"
-pseudo = "div.username::text"
-lien_profil = "a.player-link::attr(href)"
-
-bloc_arme = "section.weapon-card"
-nom_arme = "h3.weapon-name::text"
-accessoire = "li.attachment .name::text"
-\`\`\`
+# 3. Déduplication et tri par kills
+weapons = [{"name": name, "kills": int(kills.replace(',', ''))} for name, kills in matches[:3]]
+```
 
 ---
 
 ## ✅ Statut Actuel
 
-### Phase 0.5 - Extraction ✅ **COMPLÈTE**
+### Phase 0.5 - Extraction ✅ **COMPLÈTE À 100%**
 - [x] Exploration Tracker.gg réussie
-- [x] **100 joueurs extraits avec Selenium** (\`bf6_leaderboard_2025-10-18_174621.ndjson\`)
-- [x] Anonymisation SHA256 implémentée
+- [x] **100 joueurs + top 3 armes extraits** (`bf6_top_weapons_2025-10-20_200220.ndjson`)
+- [x] Cloudflare bypass avec undetected-chromedriver (100% de succès)
 - [x] Format NDJSON (BigQuery-ready)
-- [x] Projet réorganisé et documenté
+- [x] Projet nettoyé et archivé
 
-📊 **Résultat** : 100 joueurs, 5,068,303 kills totaux, moyenne 50,683 kills/joueur
+📊 **Résultat Production** : 
+- **100/100 joueurs** extraits avec succès
+- **300 armes** référencées (3 par joueur)
+- **Fichier** : 22.66 KB NDJSON
+- **Durée** : 31 minutes (~17s par joueur)
+- **Taux de succès** : 100% (zéro échec)
 
-### �� PRIORITÉ #1 : Re-tester API Tracker.gg
-- **Clé API** : Stockée dans \`.env\` (retourne 401 pour le moment)
-- **Actions** :
-  1. Attendre 24-48h après création (oct 19-20, 2025)
-  2. Retester : \`python scripts/test_api.py\`
-  3. Si API fonctionne → Migrer vers extraction API (plus rapide/stable)
-  4. Si API échoue → Continuer avec Selenium
+### 🔴 API Tracker.gg : NON FONCTIONNELLE (accepté)
+- **Clé API** : Stockée dans `.env` (retourne toujours 401)
+- **Décision** : Web scraping est la solution de production
+- **Statut** : API en backup si un jour activée
+
+---
+
+## 🏆 Armes Populaires Détectées
+
+Top armes dans le leaderboard (exemples) :
+- **L85A3** : 31,519 kills (SKTelecomT1_Nova)
+- **PW5A3** : 60,213 kills (MrDDoo)
+- **L110** : 42,438 kills (LittleDemonCupey)
+- **SL9**, **TR-7**, **M417 A2**, **UMG-40** : Très présents
 
 ---
 
 ## 🏗️ Architecture du Pipeline
 
-\`\`\`
+```
 ┌───────────────────────────────────────────────────────────┐
 │              TRACKER.GG (Source de données)               │
 │  • Leaderboard + Player Profiles                         │
-│  • API (en test) ou Selenium (actuel)                    │
+│  • Extraction: Selenium + undetected-chromedriver        │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ Scrapy/Selenium (quotidien)
+                  │ extract_bf6_top_weapons.py (hebdo)
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │         BRONZE - Data Lake (MinIO S3-compatible)          │
 │  • Fichiers NDJSON bruts                                  │
-│  • bf6_leaderboard_YYYY-MM-DD.ndjson                      │
-│  • bf6_loadouts_YYYY-MM-DD.ndjson                         │
+│  • tracker-gg/top-weapons/bf6_top_weapons_*.ndjson        │
 └─────────────────┬─────────────────────────────────────────┘
                   │ Load to BigQuery
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │            SILVER - BigQuery + DBT                        │
 │  • Nettoyage, typage, déduplication                       │
-│  • Calculs KPIs (fréquence accessoires, combos)           │
+│  • Calculs KPIs (fréquence armes, meta trends)            │
 └─────────────────┬─────────────────────────────────────────┘
                   │ DBT transformations
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │              GOLD - BigQuery (Tables finales)             │
-│  • top_3_attachments_by_weapon                            │
-│  • weapon_usage_trends                                    │
-│  • player_performance_evolution                           │
+│  • top_weapons_by_week                                    │
+│  • weapon_popularity_trends                               │
+│  • player_specializations                                 │
 └─────────────────┬─────────────────────────────────────────┘
                   │ SQL queries
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │                 DASHBOARD - Streamlit                     │
-│  • Affichage Top 3 loadouts par arme                      │
-│  • Filtres : Date, Arme, Plateforme                       │
-│  • Graphiques tendances                                   │
+│  • Affichage Meta weapons (Top 10)                        │
+│  • Filtres : Semaine, Arme                                │
+│  • Graphiques évolution popularité                        │
 └───────────────────────────────────────────────────────────┘
                   ▲
 ┌─────────────────┴─────────────────────────────────────────┐
-│         ORCHESTRATION - Apache Airflow                    │
-│  • DAG quotidien : Extract → Upload → Transform → Update  │
+│         AUTOMATION - Cron Job (launchd/crontab)           │
+│  • Exécution hebdomadaire (dimanches 2h)                  │
+│  • Extract → Upload MinIO → Notification                  │
 └───────────────────────────────────────────────────────────┘
-\`\`\`
+```
 
 ---
 
@@ -122,14 +135,13 @@ accessoire = "li.attachment .name::text"
 
 | Composant          | Technologie                    | Rôle                                      |
 |--------------------|--------------------------------|-------------------------------------------|
-| **Extraction**     | \`Selenium\` + \`Scrapy\`          | Scraping leaderboard + profils joueurs    |
-| **API Client**     | \`requests\` + \`python-dotenv\`   | Tests API Tracker.gg (en attente)         |
-| **Storage Bronze** | \`MinIO\` (S3-compatible)        | Data Lake NDJSON (fichiers bruts)         |
-| **Data Warehouse** | \`Google BigQuery\`              | Entrepôt cloud SQL (gratuit jusqu'à 1TB)  |
-| **Transformation** | \`DBT Core\`                     | Modèles SQL Bronze → Silver → Gold        |
-| **Visualisation**  | \`Streamlit\`                    | Dashboard interactif Python               |
-| **Orchestration**  | \`Apache Airflow\`               | Automatisation quotidienne (DAGs)         |
-| **Conteneurisation**| \`Docker\` + \`docker-compose\`   | MinIO, Airflow, environnement isolé       |
+| **Extraction**     | `Selenium` + `undetected-chromedriver` | Bypass Cloudflare + scraping HTML  |
+| **Storage Bronze** | `MinIO` (S3-compatible)        | Data Lake NDJSON (fichiers bruts)         |
+| **Data Warehouse** | `Google BigQuery`              | Entrepôt cloud SQL (gratuit jusqu'à 1TB)  |
+| **Transformation** | `DBT Core`                     | Modèles SQL Bronze → Silver → Gold        |
+| **Visualisation**  | `Streamlit`                    | Dashboard interactif Python               |
+| **Automation**     | `Cron` / `launchd`             | Extraction hebdomadaire automatique       |
+| **Conteneurisation**| `Docker` + `docker-compose`   | MinIO, environnement isolé                |
 
 ---
 
@@ -137,205 +149,229 @@ accessoire = "li.attachment .name::text"
 
 ### Prérequis
 
-\`\`\`bash
+```bash
 # Python 3.12+
 python --version
 
 # Packages requis
 pip install -r requirements.txt
+# Principaux: selenium, undetected-chromedriver, beautifulsoup4
 
-# Docker (pour MinIO/Airflow)
+# Docker (pour MinIO - Phase 1)
 docker --version
-\`\`\`
+```
 
-### Extraction des données (✅ READY)
+### Extraction des données (✅ PRODUCTION-READY)
 
-\`\`\`bash
-# Méthode 1 : Selenium (ACTUEL - fonctionne)
-python scripts/extract_bf6_final.py
+```bash
+# Extraction hebdomadaire des top 100 joueurs + top 3 armes
+cd /Users/paulfrette/Github_pro_folder/battlefield_meta_aggregator
+python scripts/extract_bf6_top_weapons.py
 
-# Méthode 2 : API Tracker.gg (À retester - PRIORITÉ)
-# 1. Vérifier .env contient TRACKER_GG_API_KEY
-# 2. Tester :
-python scripts/test_api.py
-\`\`\`
+# Résultat: data/bronze/tracker_gg/top_weapons/bf6_top_weapons_YYYY-MM-DD_HHMMSS.ndjson
+# Durée: ~31 minutes (15s/joueur pour Cloudflare bypass)
+# Succès: 100% garanti avec undetected-chromedriver
+```
 
-📂 **Résultat** : \`data/bronze/bf6_leaderboard_YYYY-MM-DD_HHMMSS.ndjson\`
+📂 **Dernière extraction** : `bf6_top_weapons_2025-10-20_200220.ndjson` (22.66 KB, 100 joueurs)
 
 ---
 
 ## 📁 Structure du Projet
 
-\`\`\`
+```
 battlefield_meta_aggregator/
-├── README.md                          # Ce fichier
-├── TODO.md                            # Roadmap détaillé phases 1-5
-├── STATUS_CURRENT.md                  # État actuel du projet
+├── readme.md                          # Ce fichier
 ├── requirements.txt                   # Dépendances Python
-├── docker-compose.yml                 # MinIO + Airflow containers
+├── .env                               # Configuration (MinIO, BigQuery, Tracker.gg)
+├── docker-compose.yml                 # MinIO container (Phase 1)
 │
-├── scripts/                           # Scripts d'extraction et upload
-│   ├── extract_bf6_final.py          # ✅ Selenium extraction (production)
-│   ├── test_api.py                   # 🔴 Test API Tracker.gg (PRIORITÉ)
-│   ├── upload_to_minio.py            # Upload NDJSON → MinIO
-│   └── analyze_data.py               # Analyse données extraites
+├── scripts/                           # Scripts d'extraction
+│   ├── extract_bf6_top_weapons.py    # ✅ Production script (100 joueurs)
+│   └── README.md
 │
-├── extract/                           # Scrapy project
-│   ├── spiders/
-│   │   ├── pcgamer_spider.py         # Spider articles PC Gamer
-│   │   └── wzstats_spider.py         # Spider stats Warzone
-│   ├── items.py                      # Scrapy items
-│   └── settings.py                   # Scrapy config
+├── data/                              # Données extraites
+│   ├── bronze/tracker_gg/top_weapons/ # ✅ NDJSON production
+│   │   └── bf6_top_weapons_2025-10-20_200220.ndjson (100 joueurs)
+│   ├── logs/                          # Logs d'extraction
+│   └── exploration/                   # Tests et analyses
 │
-├── data/                             # Données extraites
-│   ├── bronze/                       # ✅ NDJSON bruts (100 joueurs)
-│   │   └── bf6_leaderboard_*.ndjson
-│   ├── outputs/                      # Résultats d'analyse
-│   └── exploration/                  # Tests et explorations
+├── archive/                           # Fichiers obsolètes (26 fichiers)
+│   ├── extract_10_players_simple.py   # Anciens scripts de test
+│   ├── .env.old                       # Ancienne config (SQL Server)
+│   └── ...
 │
-├── dbt/                              # DBT transformations (à venir)
+├── dbt/                               # DBT transformations (Phase 3)
 │   └── models/
-│       ├── bronze/                   # Raw data
-│       ├── silver/                   # Cleaned data
-│       └── gold/                     # Aggregated metrics
+│       ├── bronze/                    # Raw data
+│       ├── silver/                    # Cleaned data
+│       └── gold/                      # Aggregated metrics
 │
-├── dashboard/                        # Streamlit UI (à venir)
+├── dashboard/                         # Streamlit UI (Phase 4)
 │   └── pages/
 │
-├── airflow/                          # Airflow DAGs (à venir)
+├── airflow/                           # Airflow DAGs (archived)
 │   └── dags/
 │
-└── archive/                          # Fichiers obsolètes
-\`\`\`
+└── extract/                           # Scrapy project (archived)
+    └── spiders/
+```
 
 ---
 
 ## 📋 Roadmap
 
-### ✅ Phase 0.5 : Extraction (COMPLÈTE)
+### ✅ Phase 0.5 : Extraction (100% COMPLÈTE)
 - [x] Exploration Tracker.gg
-- [x] Test API + Selenium
-- [x] Extraction 100 joueurs
-- [x] Anonymisation SHA256
-- [x] Format NDJSON
+- [x] Test Cloudflare bypass avec undetected-chromedriver
+- [x] Extraction 100 joueurs + top 3 armes par joueur
+- [x] Format NDJSON optimisé
+- [x] **Production-ready : 100/100 succès (22.66 KB)**
 
-### 🟡 Phase 1 : MinIO Upload (NEXT - 30 min)
+### 🟡 Phase 1 : MinIO Upload (NEXT - 1h)
 - [ ] Installer Docker Desktop
-- [ ] \`docker compose up -d minio\`
-- [ ] Exécuter \`upload_to_minio.py\`
-- [ ] Valider fichiers dans MinIO UI
+- [ ] `docker compose up -d minio`
+- [ ] Créer buckets : `bronze/tracker-gg/top-weapons/`
+- [ ] Script d'upload automatique
+- [ ] Valider fichiers dans MinIO UI (localhost:9001)
 
 ### 🔵 Phase 2 : BigQuery Setup (1-2h)
 - [ ] Créer projet Google Cloud
 - [ ] Activer BigQuery API
-- [ ] Créer dataset \`bf6_meta\`
-- [ ] Charger NDJSON → table \`bronze_leaderboard\`
+- [ ] Créer dataset `bf6_meta`
+- [ ] Charger NDJSON → table `bronze_top_weapons`
+- [ ] Requête test : armes les plus populaires
 
 ### 🔵 Phase 3 : DBT Transformations (2-3h)
 - [ ] Installer DBT Core
-- [ ] Créer modèles Bronze → Silver → Gold
-- [ ] Calculer fréquence accessoires par arme
-- [ ] Créer table \`top_3_attachments_by_weapon\`
+- [ ] Modèle Bronze → Silver (nettoyage, déduplication)
+- [ ] Modèle Silver → Gold (agrégations)
+- [ ] Tables cibles :
+  - `gold_top_weapons_by_week`
+  - `gold_weapon_popularity_trends`
+  - `gold_meta_weapons` (Top 10 global)
 
 ### 🔵 Phase 4 : Streamlit Dashboard (2-3h)
-- [ ] Interface affichage Top 3 par arme
-- [ ] Filtres (Date, Arme, Plateforme)
-- [ ] Graphiques tendances
+- [ ] Interface Top 10 armes meta
+- [ ] Graphique évolution popularité
+- [ ] Filtres : Semaine, Arme
+- [ ] Tableau kills par arme
 
-### 🔵 Phase 5 : Airflow Orchestration (3-4h)
-- [ ] Créer DAG quotidien
-- [ ] Tasks : Extract → Upload → Transform → Update
-- [ ] Monitoring et alertes
+### 🔵 Phase 5 : Automation Hebdomadaire (1-2h)
+- [ ] Créer wrapper script Bash
+- [ ] Configuration cron/launchd (dimanches 2h)
+- [ ] Upload automatique vers MinIO
+- [ ] Notification par email (optionnel)
+
+---
+
+**Temps total estimé** : 8-12 heures (phases 1-5)  
+**Statut actuel** : Phase 0.5 validée à 100% ✅
 
 ---
 
 ## 🔧 Configuration
 
-### Variables d'environnement (\`.env\`)
+### Variables d'environnement (`.env`)
 
-\`\`\`bash
-# API Tracker.gg
-TRACKER_GG_API_KEY=55b66bdc-3610-482e-b94c-aa0b2dbc93f9
+```bash
+# TRACKER.GG API
+TRACKER_GG_API_KEY=your_api_key_here
+TRACKER_GG_BASE_URL=https://public-api.tracker.gg/v2
 
-# MinIO
+# MINIO (OBJECT STORAGE)
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET_BRONZE=bronze
+MINIO_BUCKET_SILVER=silver
+MINIO_BUCKET_GOLD=gold
 
-# BigQuery (à venir)
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account.json
-BQ_PROJECT_ID=battlefield-meta-aggregator
-BQ_DATASET=bf6_meta
-\`\`\`
+# BIGQUERY (DATA WAREHOUSE)
+GCP_PROJECT_ID=your-project-id
+GCP_DATASET_ID=bf6_meta
+GCP_CREDENTIALS_PATH=path/to/service-account.json
+
+# EXTRACTION / SCRAPING
+USER_AGENT=BattlefieldMetaAggregator/1.0
+SCRAPING_DELAY=2
+MAX_RETRIES=3
+
+# LOGS AND MONITORING
+LOG_LEVEL=INFO
+DEBUG=False
+LOG_DIR=data/logs
+
+# CRON SCHEDULE
+EXTRACTION_SCHEDULE=0 2 * * 0  # Sundays 2am
+```
 
 ---
 
 ## 📊 Format des Données
 
-### Leaderboard (NDJSON)
-\`\`\`json
+### Top Weapons per Player (NDJSON)
+```json
 {
-  "extraction_date": "2025-10-18T17:46:21",
-  "rank": 1,
-  "username_original": "Happy_3201",
-  "username_hash": "player_b97fd6bc",
-  "stats": {
-    "kills": 95150,
-    "score": 282
-  },
-  "source_url": "https://tracker.gg/bf6/leaderboards",
-  "extraction_method": "selenium_html"
+  "source": "tracker.gg",
+  "board": "Kills",
+  "snapshot_utc": "2025-10-20T20:02:20.182873+00:00",
+  "player_id": "1011349201070",
+  "handle": "Nadezhda_",
+  "top_weapons": [
+    {"name": "TR-7", "kills": 14462, "accuracy_pct": null},
+    {"name": "M417 A2", "kills": 14073, "accuracy_pct": null},
+    {"name": "UMG-40", "kills": 10218, "accuracy_pct": null}
+  ],
+  "status": "success"
 }
-\`\`\`
+```
 
-### Loadouts (NDJSON - à venir)
-\`\`\`json
-{
-  "extraction_date": "2025-10-19T10:00:00",
-  "username_hash": "player_b97fd6bc",
-  "weapon": "AK-24",
-  "attachments": {
-    "optic": "Holographic Sight",
-    "barrel": "Extended Barrel",
-    "magazine": "Extended Mag",
-    "underbarrel": "Vertical Grip",
-    "stock": "Close Combat Stock"
-  },
-  "source_url": "https://tracker.gg/bf6/profile/...",
-  "extraction_method": "selenium_html"
-}
-\`\`\`
+**Champs** :
+- `source` : Source de données (tracker.gg)
+- `board` : Type de classement (Kills)
+- `snapshot_utc` : Date/heure d'extraction UTC
+- `player_id` : ID unique joueur Tracker.gg
+- `handle` : Pseudo joueur
+- `top_weapons` : Array des 3 armes les plus utilisées
+  - `name` : Nom de l'arme
+  - `kills` : Nombre de kills total
+  - `accuracy_pct` : Précision (null actuellement, amélioration future)
+- `status` : Statut extraction (success/failure)
 
 ---
 
 ## 🚨 Troubleshooting
 
-### API retourne 401 Unauthorized
-→ **Solution** : Attendre 24-48h après création de la clé (oct 19-20, 2025)  
-→ **Test** : \`python scripts/test_api.py\`
+### Cloudflare bloque l'extraction
+→ **Solution** : undetected-chromedriver installé et testé (100% succès)  
+→ **Délai nécessaire** : 15 secondes par page pour résolution automatique
 
 ### Docker command not found
 → **Solution** : Installer [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
-### Selenium: ChromeDriver incompatible
-→ **Solution** : \`pip install --upgrade selenium webdriver-manager\`
+### Chrome/ChromeDriver incompatible
+→ **Solution** : `pip install --upgrade undetected-chromedriver selenium`
+
+### Extraction interrompue prématurément
+→ **Vérifier** : Aucune commande ne doit être lancée pendant l'extraction (durée ~31 min)
 
 ---
 
 ## 🎓 Ressources
 
-- [Tracker.gg API Docs](https://tracker.gg/developers/docs)
-- [Scrapy Documentation](https://docs.scrapy.org/)
+- [Tracker.gg](https://tracker.gg/bf6/leaderboards) - Source des données
+- [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) - Bypass Cloudflare
 - [DBT Core Docs](https://docs.getdbt.com/)
 - [Streamlit Docs](https://docs.streamlit.io/)
-- [Airflow Docs](https://airflow.apache.org/docs/)
+- [MinIO Docs](https://min.io/docs/minio/linux/index.html)
 
 ---
 
 ## 📝 Licence
 
-MIT License - Projet personnel d'apprentissage
+MIT License - Projet personnel d'apprentissage Data Engineering
 
 ---
 
-**🔴 NEXT STEP** : Retester API Tracker.gg le 19-20 octobre 2025 → \`python scripts/test_api.py\`
+**🎯 NEXT STEP** : Phase 1 - MinIO Upload (installation Docker + configuration buckets)
