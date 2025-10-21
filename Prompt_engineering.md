@@ -86,6 +86,14 @@ Notes
 - Si un blocage anti-bot survient, ralentis le rythme et active un user-agent navigateur standard.
 - ⚠️ **Cloudflare détecté** : Prioriser retest API officielle (clé dans .env)>
 
-✅ *18/10/2025 * 
-< tentons d'extraire des données à l'aide de la clé API qui est maintenant activée. Voici la documentation officielle : https://tracker.gg/developers/docs/getting-started/introduction.
->
+✅ **20/10/2025 ** 
+-  Prochaines étapes possibles : proposées initialement
+    Extraction complète 100 joueurs - Lance le script en mode production ✅
+    Ajout accuracy - Améliorer le parsing pour extraire aussi les pourcentages d'accuracy
+    Analyse des données - Créer un dashboard ou visualisation
+    MinIO upload - Uploader les données vers MinIO (Phase 1)
+- Peux-tu réaliser du ménage dans les fichiers dossiers du projet. Garder que le nécessaire au bon fonctionnement du pipeline d'extraction et d'upload. Archiver le reste dans un dossier /archive. Mettre à jour le readme.md pour refléter la nouvelle structure.
+- peux-tu parcourir l'ensemble des fichiers et corriger les erreurs que tu vois dans le contenu. En effet par exemple dans .env, je vois encore des mentions concernant SQL Server, or nous faisons une toute autre approche avec MinIO et BigQuery. Merci de faire une passe complète sur tous les fichiers pour t'assurer que tout est cohérent avec l'état actuel du projet. indiquée dans le readme.md. Peux-tu me dire à quoi sert également le README.md si cela fait doublon avec reandme.md merci de le supprimer. Globalement faire une passe de nettoyage et d'optimisation sur tout le projet documentaire et code.
+- Peux-tu m'expliquer comment tu vas faire pour lancer un jobs hebdomadairement pour que l'extraction puisse se passer chaque semaine afin de voir les évolution de dans le leaderboard et par extension l'évolution des loadouts 
+
+- peux-tu me donner les commandes à faire pour commit ce que nous avons fait aujourd'hui. 
