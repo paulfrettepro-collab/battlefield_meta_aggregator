@@ -47,6 +47,9 @@ try:
             if len(cells) < 2:
                 continue
             
+            # Extraire le rank (position dans le classement)
+            rank = i  # Le rang correspond à la position dans la boucle
+            
             link = cells[1].find_element(By.TAG_NAME, "a")
             url = link.get_attribute("href")
             handle = link.text.strip()
@@ -54,8 +57,13 @@ try:
             pid_match = re.search(r'/profile/(\d+)', url)
             pid = pid_match.group(1) if pid_match else "unknown"
             
-            players.append({"player_id": pid, "handle": handle, "url_profil": url})
-            print(f"✅ {i:2d}. {handle} (ID: {pid})")
+            players.append({
+                "rank": rank,  # ✅ Ajout du rank
+                "player_id": pid, 
+                "handle": handle, 
+                "url_profil": url
+            })
+            print(f"✅ {rank:3d}. {handle} (ID: {pid})")
         except Exception as e:
             print(f"❌ Erreur ligne {i}: {e}")
     
@@ -103,6 +111,7 @@ try:
                 "source": "tracker.gg",
                 "board": "Kills",
                 "snapshot_utc": datetime.now(timezone.utc).isoformat(),
+                "rank": player['rank'],  # ✅ Ajout du rank dans le résultat
                 "player_id": player['player_id'],
                 "handle": player['handle'],
                 "top_weapons": weapons,
@@ -117,6 +126,7 @@ try:
                 "source": "tracker.gg",
                 "board": "Kills",
                 "snapshot_utc": datetime.now(timezone.utc).isoformat(),
+                "rank": player['rank'],  # ✅ Ajout du rank même en cas d'échec
                 "player_id": player['player_id'],
                 "handle": player['handle'],
                 "top_weapons": [],
