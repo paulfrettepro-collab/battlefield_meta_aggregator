@@ -191,7 +191,7 @@ dashboard/.streamlit/
 # 12. NOTES PERSONNELLES (NON VERSIONNÉES)
 # ============================================
 
-cli_git_symboles_vs_code.md
+# cli_git_symboles_vs_code.md  # Désormais versionné (guide de référence)
 liste_defis_projet.md
 Prompt_engineering.md
 
