@@ -40,7 +40,7 @@ def upload_to_minio(file_path, bucket_name="bronze"):
         
         # Uploader le fichier
         file_path = Path(file_path)
-        object_name = f"bf6/leaderboard/{file_path.name}"
+        object_name = f"bf6/top_weapons/{file_path.name}"  # Correct path pour armes
         
         print(f"\n📤 Upload en cours...")
         print(f"   Source: {file_path}")
@@ -77,15 +77,12 @@ def upload_to_minio(file_path, bucket_name="bronze"):
 
 
 if __name__ == "__main__":
-    # Trouver le dernier fichier créé
-    bronze_dir = Path("data/bronze")
-    ndjson_files = sorted(bronze_dir.glob("bf6_leaderboard_*.ndjson"), reverse=True)
+    # Fichier d'extraction des armes (100 joueurs)
+    latest_file = Path("data/bronze/tracker_gg/top_weapons/bf6_top_weapons_2025-10-20_200220.ndjson")
     
-    if not ndjson_files:
-        print("❌ Aucun fichier NDJSON trouvé dans data/bronze/")
+    if not latest_file.exists():
+        print(f"❌ Fichier introuvable: {latest_file}")
         exit(1)
-    
-    latest_file = ndjson_files[0]
     
     print("\n🎮" * 40)
     print("   BATTLEFIELD 6 - UPLOAD MINIO")

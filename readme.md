@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Scrapy](https://img.shields.io/badge/Scrapy-2.11-green.svg)](https://scrapy.org/)
-[![Status](https://img.shields.io/badge/Status-Phase%200.5-yellow.svg)]()
+[![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-green.svg)]()
 
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
@@ -228,14 +228,17 @@ battlefield_meta_aggregator/
 - [x] Format NDJSON optimisé
 - [x] **Production-ready : 100/100 succès (22.66 KB)**
 
-### 🟡 Phase 1 : MinIO Upload (NEXT - 1h)
-- [ ] Installer Docker Desktop
-- [ ] `docker compose up -d minio`
-- [ ] Créer buckets : `bronze/tracker-gg/top-weapons/`
-- [ ] Script d'upload automatique
-- [ ] Valider fichiers dans MinIO UI (localhost:9001)
+### ✅ Phase 1 : MinIO Upload (COMPLÈTE)
+- [x] Installer Docker Desktop
+- [x] `docker compose up -d minio`
+- [x] Créer bucket `bronze`
+- [x] Script d'upload automatique (`scripts/upload_to_minio.py`)
+- [x] **Fichiers uploadés** :
+  - `bf6/top_weapons/bf6_top_weapons_2025-10-20_200220.ndjson` (23 KB, 100 joueurs)
+  - `bf6/leaderboard/bf6_leaderboard_2025-10-18_174621.ndjson` (26 KB)
+- [x] Validé dans MinIO UI (http://localhost:9001)
 
-### 🔵 Phase 2 : BigQuery Setup (1-2h)
+### � Phase 2 : BigQuery Setup (NEXT - 1-2h)
 - [ ] Créer projet Google Cloud
 - [ ] Activer BigQuery API
 - [ ] Créer dataset `bf6_meta`
@@ -266,7 +269,7 @@ battlefield_meta_aggregator/
 ---
 
 **Temps total estimé** : 8-12 heures (phases 1-5)  
-**Statut actuel** : Phase 0.5 validée à 100% ✅
+**Statut actuel** : Phase 1 validée à 100% ✅ | Phase 2 en cours 🟡
 
 ---
 
@@ -374,4 +377,4 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 ---
 
-**🎯 NEXT STEP** : Phase 1 - MinIO Upload (installation Docker + configuration buckets)
+**🎯 NEXT STEP** : Phase 2 - BigQuery Setup (création projet GCP + dataset + load NDJSON)
