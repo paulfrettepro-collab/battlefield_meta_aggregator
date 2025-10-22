@@ -195,3 +195,11 @@ dashboard/.streamlit/
 liste_defis_projet.md
 Prompt_engineering.md
 
+# ============================================
+# 13. ARCHIVE & AI COLLABORATION
+# ============================================
+# Fichiers obsolètes archivés et logs de collaboration IA
+
+archive/            # Anciens scripts et données (pas besoin de versionner)
+ai/                 # Notes de collaboration avec l'IA (mémoire vivante)
+
