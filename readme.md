@@ -4,7 +4,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Scrapy](https://img.shields.io/badge/Scrapy-2.11-green.svg)](https://scrapy.org/)
-[![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-green.svg)]()
+[![BigQuery](https://img.shields.io/badge/BigQuery-Active-blue.svg)](https://cloud.google.com/bigquery)
+[![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-green.svg)]()
 
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
@@ -15,8 +16,10 @@
 **Chaque semaine**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leurs **top 3 armes** (nom + kills), calculer les **armes les plus populaires** et afficher les tendances dans une petite UI.
 
 **Pipeline** : `Selenium` → `MinIO (Bronze, NDJSON)` → `BigQuery` → `DBT (Silver/Gold)` → `Streamlit`  
-**Orchestration** : Cron job hebdomadaire (dimanches 2h)
+**Orchestration** : Cron job hebdomadaire (dimanches 2h)  
 **Orchestration future** : Apache Airflow (exécution quotidienne automatisée)
+
+**🎉 Phase 2 (BigQuery) COMPLÈTE** : 100 joueurs chargés | 35 armes identifiées | Pipeline opérationnel
 ---
 
 ## 🎯 Ce Qu'on Extrait
@@ -186,8 +189,12 @@ battlefield_meta_aggregator/
 ├── .env                               # Configuration (MinIO, BigQuery, Tracker.gg)
 ├── docker-compose.yml                 # MinIO container (Phase 1)
 │
-├── scripts/                           # Scripts d'extraction
+├── scripts/                           # Scripts d'extraction & chargement
 │   ├── extract_bf6_top_weapons.py    # ✅ Production script (100 joueurs)
+│   ├── upload_to_minio.py            # ✅ Upload vers MinIO (Bronze)
+│   ├── test_bigquery_connection.py   # ✅ Test connexion BigQuery
+│   ├── load_to_bigquery.py           # ✅ Pipeline MinIO → BigQuery
+│   ├── query_bigquery.py             # ✅ Requêtes SQL analytiques (6 queries)
 │   └── README.md
 │
 ├── data/                              # Données extraites
@@ -200,6 +207,15 @@ battlefield_meta_aggregator/
 │   ├── extract_10_players_simple.py   # Anciens scripts de test
 │   ├── .env.old                       # Ancienne config (SQL Server)
 │   └── ...
+│
+├── docs/                              # Documentation technique
+│   ├── BIGQUERY_GUIDE.md              # ✅ Guide complet BigQuery (setup, queries, troubleshooting)
+│   ├── CLI_GIT_GUIDE.md               # 🧠 Commandes CLI + Git + Python + SQL (moyens mnémotechniques)
+│   ├── SOURCES_EXPLORATION.md         # Exploration sources de données
+│   └── ...
+│
+├── config/                            # Configuration (non versionné)
+│   └── bigquery-key.json              # 🔐 Credentials Google Cloud (gitignored)
 │
 ├── dbt/                               # DBT transformations (Phase 3)
 │   └── models/
@@ -228,7 +244,7 @@ battlefield_meta_aggregator/
 - [x] Format NDJSON optimisé
 - [x] **Production-ready : 100/100 succès (22.66 KB)**
 
-### ✅ Phase 1 : MinIO Upload (COMPLÈTE)
+### Phase 1 : MinIO Upload ✅ **COMPLÈTE**
 - [x] Installer Docker Desktop
 - [x] `docker compose up -d minio`
 - [x] Créer bucket `bronze`
@@ -238,12 +254,25 @@ battlefield_meta_aggregator/
   - `bf6/leaderboard/bf6_leaderboard_2025-10-18_174621.ndjson` (26 KB)
 - [x] Validé dans MinIO UI (http://localhost:9001)
 
-### � Phase 2 : BigQuery Setup (NEXT - 1-2h)
-- [ ] Créer projet Google Cloud
-- [ ] Activer BigQuery API
-- [ ] Créer dataset `bf6_meta`
-- [ ] Charger NDJSON → table `bronze_top_weapons`
-- [ ] Requête test : armes les plus populaires
+### ✅ Phase 2 : BigQuery Setup **COMPLÈTE** (22 oct 2025)
+- [x] Créer projet Google Cloud (`battlefield-meta-aggregator`)
+- [x] Activer BigQuery API
+- [x] Créer service account avec rôle BigQuery Admin
+- [x] Créer dataset `bf6_meta` (région US)
+- [x] Charger NDJSON → table `top_weapons` (100 lignes, 7.22 KB)
+- [x] Scripts Python créés :
+  - `scripts/test_bigquery_connection.py` - Test de connexion ✅
+  - `scripts/load_to_bigquery.py` - Pipeline MinIO → BigQuery ✅
+  - `scripts/query_bigquery.py` - 6 requêtes SQL analytiques ✅
+- [x] Documentation complète (`docs/BIGQUERY_GUIDE.md`)
+- [x] **Résultats** :
+  - 26 joueurs uniques
+  - 35 armes différentes
+  - Arme la plus populaire : TR-7 (8 joueurs)
+  - Record kills : MrDDoo avec PW5A3 (60,213 kills)
+- [x] **Pipeline opérationnel end-to-end** : Extraction → MinIO → BigQuery → SQL Analytics
+
+📊 **Console BigQuery** : https://console.cloud.google.com/bigquery?project=battlefield-meta-aggregator
 
 ### 🔵 Phase 3 : DBT Transformations (2-3h)
 - [ ] Installer DBT Core
@@ -269,7 +298,13 @@ battlefield_meta_aggregator/
 ---
 
 **Temps total estimé** : 8-12 heures (phases 1-5)  
-**Statut actuel** : Phase 1 validée à 100% ✅ | Phase 2 en cours 🟡
+**Statut actuel** : Phase 2 validée à 100% ✅ | Phase 3 (DBT) prochaine 🟡
+
+**📈 Métriques actuelles** :
+- ✅ 100 joueurs extraits
+- ✅ 35 armes uniques identifiées
+- ✅ Pipeline complet fonctionnel (Tracker.gg → MinIO → BigQuery)
+- ✅ Coût BigQuery : 0€ (Free Tier)
 
 ---
 
@@ -290,10 +325,11 @@ MINIO_BUCKET_BRONZE=bronze
 MINIO_BUCKET_SILVER=silver
 MINIO_BUCKET_GOLD=gold
 
-# BIGQUERY (DATA WAREHOUSE)
-GCP_PROJECT_ID=your-project-id
+# BIGQUERY (DATA WAREHOUSE) - Phase 2 ✅
+GCP_PROJECT_ID=battlefield-meta-aggregator
+GCP_PROJECT_NUMBER=901319004413
+GOOGLE_APPLICATION_CREDENTIALS=config/bigquery-key.json
 GCP_DATASET_ID=bf6_meta
-GCP_CREDENTIALS_PATH=path/to/service-account.json
 
 # EXTRACTION / SCRAPING
 USER_AGENT=BattlefieldMetaAggregator/1.0
@@ -377,4 +413,13 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 ---
 
-**🎯 NEXT STEP** : Phase 2 - BigQuery Setup (création projet GCP + dataset + load NDJSON)
+**🎯 NEXT STEP** : Phase 3 - DBT Transformations (modèles Bronze → Silver → Gold)
+
+**📚 Documentation complète** :
+- 🔍 **BigQuery** : `docs/BIGQUERY_GUIDE.md` (setup, queries, troubleshooting)
+- 🧠 **CLI/Git/Python/SQL** : `docs/CLI_GIT_GUIDE.md` (moyens mnémotechniques)
+- 📊 **Collaboration** : `ai/notes.md` (historique sessions + décisions)
+
+---
+
+**Dernière mise à jour** : 22 octobre 2025 - Phase 2 complète

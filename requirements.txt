@@ -51,6 +51,13 @@ minio==7.2.0                   # MinIO (alternative open-source à Azure Blob)
 boto3==1.34.10                 # AWS S3 (si utilisation d'AWS)
 
 # ============================================
+# BIGQUERY & GOOGLE CLOUD (PHASE 2)
+# ============================================
+google-cloud-bigquery==3.14.1  # Client BigQuery Python
+google-cloud-storage==2.14.0   # Google Cloud Storage (optionnel)
+db-dtypes==1.1.1               # Types de données BigQuery pour pandas
+
+# ============================================
 # SCHEDULING & AUTOMATION
 # ============================================
 APScheduler==3.10.4       # Planification des tâches (scraping hebdomadaire)
