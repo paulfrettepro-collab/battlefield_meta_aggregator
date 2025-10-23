@@ -20,6 +20,8 @@
 **Orchestration future** : Apache Airflow (exécution quotidienne automatisée)
 
 **🎉 Phase 2 (BigQuery) COMPLÈTE** : 100 joueurs chargés | 35 armes identifiées | Pipeline opérationnel
+
+**🚀 Phase 2.5 (Fresh Data) EN COURS** : Nouveau pipeline 2 fichiers | 97 joueurs extraits | Extraction weapons demain
 ---
 
 ## 🎯 Ce Qu'on Extrait
@@ -190,7 +192,10 @@ battlefield_meta_aggregator/
 ├── docker-compose.yml                 # MinIO container (Phase 1)
 │
 ├── scripts/                           # Scripts d'extraction & chargement
-│   ├── extract_bf6_top_weapons.py    # ✅ Production script (100 joueurs)
+│   ├── extract_bf6_top_weapons.py    # ✅ Production script v1 (100 joueurs - 20 oct)
+│   ├── extract_bf6_leaderboard.py    # ✅ NEW: Extraction leaderboard (97 joueurs)
+│   ├── extract_bf6_top_weapons_final.py  # ✅ NEW: Extraction weapons v2 (prêt)
+│   ├── extract_weapons_from_table.py # ✅ NEW: Proof of concept (100% succès)
 │   ├── upload_to_minio.py            # ✅ Upload vers MinIO (Bronze)
 │   ├── test_bigquery_connection.py   # ✅ Test connexion BigQuery
 │   ├── load_to_bigquery.py           # ✅ Pipeline MinIO → BigQuery
@@ -198,8 +203,13 @@ battlefield_meta_aggregator/
 │   └── README.md
 │
 ├── data/                              # Données extraites
-│   ├── bronze/tracker_gg/top_weapons/ # ✅ NDJSON production
-│   │   └── bf6_top_weapons_2025-10-20_200220.ndjson (100 joueurs)
+│   ├── bronze/tracker_gg/
+│   │   ├── top_weapons/               # ✅ NDJSON weapons
+│   │   │   ├── bf6_top_weapons_2025-10-20_200220.ndjson (100 joueurs - v1)
+│   │   │   └── bf6_top_weapons_table_parser_2025-10-23_183628.ndjson (3 joueurs - POC)
+│   │   └── leaderboard/               # ✅ NEW: NDJSON leaderboard
+│   │       ├── bf6_leaderboard_2025-10-23_185748.ndjson (97 joueurs)
+│   │       └── leaderboard_debug.html (836 KB - debug Cloudflare)
 │   ├── logs/                          # Logs d'extraction
 │   └── exploration/                   # Tests et analyses
 │
@@ -274,7 +284,41 @@ battlefield_meta_aggregator/
 
 📊 **Console BigQuery** : https://console.cloud.google.com/bigquery?project=battlefield-meta-aggregator
 
-### 🔵 Phase 3 : DBT Transformations (2-3h)
+### � Phase 2.5 : Fresh Data Extraction Pipeline (23 oct 2025)
+**Contexte** : L'extraction du 20 oct avait 74% d'échec (74 joueurs avec 0 armes)
+
+**Problèmes résolus** :
+- [x] **Cloudflare bypass** : Mode headless bloqué → Navigateur visible requis
+- [x] **Délai insuffisant** : 15s → 20s pour chargement complet
+- [x] **Parser inadapté** : Regex → BeautifulSoup avec sélecteurs CSS
+- [x] **Structure HTML** : data-key numérique au lieu de player_id_*
+
+**Scripts créés** :
+- [x] `scripts/extract_bf6_leaderboard.py` - ✅ Extraction top 100 (97/100 joueurs)
+- [x] `scripts/extract_bf6_top_weapons_final.py` - ✅ Extraction weapons (prêt, non lancé)
+- [x] `scripts/extract_weapons_from_table.py` - ✅ Proof of concept (100% succès sur 3 joueurs)
+
+**Résultats Phase 1 (Leaderboard)** :
+- [x] 97 joueurs extraits (rangs 4-100)
+  - Rangs 1-3 manquants : Badges visuels 🏆🥈🥉 (structure différente)
+  - Handle (clé primaire), player_id, rank, kills
+- [x] Fichier : `bf6_leaderboard_2025-10-23_185748.ndjson`
+- [x] HTML debug sauvegardé (836 KB - confirmation bypass Cloudflare)
+- [x] Durée : 25 secondes
+
+**Prêt pour Phase 2 (Weapons)** :
+- [ ] Lancer `extract_bf6_top_weapons_final.py` (demain 24 oct)
+- [ ] Extraction top 3 armes × 97 joueurs
+- [ ] Durée estimée : 32-35 minutes
+- [ ] Taux de succès attendu : >90%
+- [ ] Fichier : `bf6_top_weapons_2025-10-23_HHMMSS.ndjson`
+
+**Architecture 2 fichiers** :
+- **Leaderboard** : 97 joueurs (handle, player_id, rank, kills)
+- **Weapons** : Top 3 armes par joueur (8 stats détaillées)
+- **Jointure** : Via `handle` (clé primaire commune)
+
+### �🔵 Phase 3 : DBT Transformations (2-3h)
 - [ ] Installer DBT Core
 - [ ] Modèle Bronze → Silver (nettoyage, déduplication)
 - [ ] Modèle Silver → Gold (agrégations)
@@ -422,4 +466,4 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 ---
 
-**Dernière mise à jour** : 22 octobre 2025 - Phase 2 complète
+**Dernière mise à jour** : 23 octobre 2025 - Phase 2.5 en cours (Fresh Data Pipeline)
