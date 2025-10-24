@@ -1,0 +1,64 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Données brutes extraites depuis tracker.gg"
+    database: battlefield-meta-aggregator
+    schema: bf6_meta
+    
+    tables:
+      - name: bf6_leaderboard_raw
+        description: "Top 100 joueurs du leaderboard (rangs 4-100)"
+        columns:
+          - name: handle
+            description: "Pseudo du joueur (PRIMARY KEY pour jointures)"
+            tests:
+              - not_null
+              - unique
+          
+          - name: player_id
+            description: "ID unique tracker.gg"
+            tests:
+              - not_null
+              - unique
+          
+          - name: rank
+            description: "Rang dans le leaderboard (4-100)"
+            tests:
+              - not_null
+          
+          - name: kills
+            description: "Total de kills du joueur"
+            tests:
+              - not_null
+          
+          - name: extraction_date
+            description: "Timestamp de l'extraction"
+            tests:
+              - not_null
+      
+      - name: bf6_top_weapons_raw
+        description: "Top 3 armes par joueur (dénormalisé)"
+        columns:
+          - name: handle
+            description: "Pseudo du joueur (FK → leaderboard)"
+            tests:
+              - not_null
+              - relationships:
+                  to: source('bronze', 'bf6_leaderboard_raw')
+                  field: handle
+          
+          - name: weapon_name
+            description: "Nom de l'arme"
+            tests:
+              - not_null
+          
+          - name: weapon_rank
+            description: "Rang de l'arme pour ce joueur (1-3)"
+            tests:
+              - not_null
+          
+          - name: kills
+            description: "Kills avec cette arme"
+            tests:
+              - not_null

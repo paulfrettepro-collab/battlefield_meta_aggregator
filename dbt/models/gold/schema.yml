@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: gold_top_weapons_global
+    description: "Top 3 armes qui font le plus de kills (MVP Dashboard)"
+    columns:
+      - name: global_rank
+        description: "Rang global de l'arme (1-3)"
+        tests:
+          - not_null
+          - unique
+      
+      - name: weapon_name
+        description: "Nom de l'arme"
+        tests:
+          - not_null
+      
+      - name: weapon_type
+        description: "Type d'arme"
+        tests:
+          - not_null
+      
+      - name: total_kills
+        description: "Total de kills avec cette arme"
+        tests:
+          - not_null
+      
+      - name: nb_players_using
+        description: "Nombre de joueurs utilisant cette arme"
+        tests:
+          - not_null
+
+  - name: gold_top_weapons_by_type
+    description: "Top 3 armes par catégorie de weapon_type"
+    columns:
+      - name: weapon_type
+        description: "Type d'arme"
+        tests:
+          - not_null
+      
+      - name: weapon_name
+        description: "Nom de l'arme"
+        tests:
+          - not_null
+      
+      - name: rank_in_type
+        description: "Rang de l'arme dans sa catégorie (1-3)"
+        tests:
+          - not_null
+      
+      - name: total_kills
+        description: "Total de kills"
+        tests:
+          - not_null
+
+  - name: gold_player_rankings
+    description: "Classement des joueurs avec leurs armes principales"
+    columns:
+      - name: player_handle
+        description: "Pseudo du joueur"
+        tests:
+          - not_null
+          - unique
+      
+      - name: player_rank
+        description: "Rang dans le leaderboard"
+        tests:
+          - not_null
+      
+      - name: player_total_kills
+        description: "Total de kills du joueur"
+        tests:
+          - not_null
+      
+      - name: main_weapon
+        description: "Arme principale du joueur"
+        tests:
+          - not_null
+      
+      - name: main_weapon_kills
+        description: "Kills avec l'arme principale"
+        tests:
+          - not_null

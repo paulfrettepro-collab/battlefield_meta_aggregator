@@ -1,0 +1,14 @@
+bf6_meta:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: battlefield-meta-aggregator
+      dataset: bf6_meta
+      threads: 4
+      timeout_seconds: 300
+      location: US
+      priority: interactive
+      retries: 1
+      keyfile: ../config/bigquery-key.json

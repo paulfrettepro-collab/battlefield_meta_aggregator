@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: silver_players
+    description: "Joueurs top 100 avec données nettoyées"
+    columns:
+      - name: player_handle
+        description: "Pseudo unique du joueur"
+        tests:
+          - not_null
+          - unique
+      
+      - name: player_id
+        description: "ID tracker.gg unique"
+        tests:
+          - not_null
+          - unique
+      
+      - name: player_rank
+        description: "Rang dans le leaderboard (4-100)"
+        tests:
+          - not_null
+      
+      - name: total_kills
+        description: "Total de kills du joueur"
+        tests:
+          - not_null
+      
+      - name: is_valid_data
+        description: "Flag de qualité des données"
+        tests:
+          - not_null
+      
+      - name: tier
+        description: "Catégorie du joueur (Top 10/50/100)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Top 10', 'Top 50', 'Top 100']
+
+  - name: silver_weapons
+    description: "Top 3 armes par joueur avec métriques nettoyées"
+    columns:
+      - name: player_handle
+        description: "Pseudo du joueur"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_players')
+              field: player_handle
+      
+      - name: weapon_name
+        description: "Nom de l'arme (normalisé UPPER)"
+        tests:
+          - not_null
+      
+      - name: weapon_type
+        description: "Type d'arme (SMG, AR, LMG, etc.)"
+        tests:
+          - not_null
+      
+      - name: weapon_kills
+        description: "Kills avec cette arme"
+        tests:
+          - not_null
+      
+      - name: weapon_rank_for_player
+        description: "Rang de l'arme pour ce joueur (1-3)"
+        tests:
+          - not_null
+      
+      - name: is_valid_weapon
+        description: "Flag de qualité"
+        tests:
+          - not_null
+
+  - name: silver_player_weapons
+    description: "Vue complète joueurs + top 3 armes"
+    columns:
+      - name: player_handle
+        description: "Pseudo du joueur"
+        tests:
+          - not_null
+      
+      - name: weapon_name
+        description: "Nom de l'arme"
+        tests:
+          - not_null
+      
+      - name: pct_kills_with_weapon
+        description: "% des kills du joueur avec cette arme"
+        tests:
+          - not_null
