@@ -6,7 +6,7 @@
 ) }}
 
 WITH latest_extraction AS (
-    SELECT MAX(extraction_date) AS max_date
+    SELECT MAX(DATE(extraction_date)) AS max_date
     FROM {{ source('bronze', 'bf6_top_weapons_raw') }}
 ),
 
@@ -53,7 +53,7 @@ cleaned_weapons AS (
         END AS is_valid_weapon
         
     FROM {{ source('bronze', 'bf6_top_weapons_raw') }}
-    WHERE extraction_date = (SELECT max_date FROM latest_extraction)
+    WHERE DATE(extraction_date) = (SELECT max_date FROM latest_extraction)
 )
 
 SELECT * FROM cleaned_weapons

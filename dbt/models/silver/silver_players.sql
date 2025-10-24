@@ -6,7 +6,7 @@
 ) }}
 
 WITH latest_extraction AS (
-    SELECT MAX(extraction_date) AS max_date
+    SELECT MAX(DATE(extraction_date)) AS max_date
     FROM {{ source('bronze', 'bf6_leaderboard_raw') }}
 ),
 
@@ -40,7 +40,7 @@ cleaned_players AS (
         END AS tier
         
     FROM {{ source('bronze', 'bf6_leaderboard_raw') }}
-    WHERE extraction_date = (SELECT max_date FROM latest_extraction)
+    WHERE DATE(extraction_date) = (SELECT max_date FROM latest_extraction)
 )
 
 SELECT * FROM cleaned_players
