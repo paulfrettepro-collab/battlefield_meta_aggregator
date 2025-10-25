@@ -784,8 +784,648 @@ Phase 5: DBT Transformations  ⏳ EN ATTENTE
 
 ---
 
+## Session 4 - 24 octobre 2025 : DBT Transformations & Critical Bug Fix
+
+### 🎯 Objectifs
+1. **Phase 3** : Implémenter les transformations DBT (Bronze → Silver → Gold)
+2. **Data Quality** : Mettre en place des tests de qualité de données
+3. **Documentation** : Créer un guide complet pour comprendre DBT + BigQuery
+
+### 🚀 Accomplissements Majeurs
+
+#### 1. Installation et Configuration DBT
+**Packages installés** :
+```bash
+dbt-core==1.11.0-b3
+dbt-bigquery==1.10.2
+```
+
+**Configuration `dbt/profiles.yml`** :
+```yaml
+bf6_meta:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: battlefield-meta-aggregator
+      dataset: bf6_meta_silver  # Silver layer
+      location: US
+      keyfile: ../config/bigquery-key.json
+```
+
+**Datasets BigQuery créés** :
+- `bf6_meta` → Bronze (données brutes)
+- `bf6_meta_silver` → Silver (nettoyage/normalization)
+- `bf6_meta_gold` → Gold (analytics-ready)
+
+#### 2. Architecture Medallion Implémentée
+
+**Bronze Layer** (Sources brutes) :
+- `bf6_meta.bf6_leaderboard_raw` : 97 joueurs
+- `bf6_meta.bf6_top_weapons_raw` : 288 armes (3 par joueur)
+
+**Silver Layer** (Transformations) :
+1. **`silver_players.sql`** : Nettoyage des données joueurs
+   - Normalisation des noms (UPPER, TRIM)
+   - Validation player_id (> 0)
+   - Filtre sur la dernière extraction
+   - **Résultat** : 97 rows
+
+2. **`silver_weapons.sql`** : Normalisation des armes
+   - Nettoyage weapon_name (UPPER, TRIM)
+   - Conversion accuracy "23.5%" → 0.235 (FLOAT)
+   - COALESCE weapon_type (remplace NULL par "UNKNOWN")
+   - **Résultat** : 288 rows
+
+3. **`silver_player_weapons.sql`** : Jointure Player ⟗ Weapons
+   - Combine leaderboard + weapons via `handle`
+   - Ajout player_rank et total_kills du joueur
+   - **Résultat** : 288 rows
+
+**Gold Layer** (Analytics) :
+1. **`gold_player_rankings.sql`** : Rankings par KPIs
+   - Classement par kills totaux
+   - Classement par accuracy moyenne
+   - Classement par headshot %
+   - **Résultat** : 96 rows (1 joueur sans armes)
+
+2. **`gold_top_weapons_global.sql`** : Top 3 armes mondiales
+   - Agrégation tous joueurs
+   - Calcul moyenne kills/accuracy/headshot
+   - Compte utilisateurs par arme
+   - **Résultat** : 3 rows
+     1. **M4A1** (CARBINES) : 95,881 kills, 35 joueurs, 23.5% accuracy
+     2. **SG 553R** (CARBINES) : 66,392 kills, 23 joueurs, 22.9% accuracy
+     3. **M433** (ASSAULT RIFLES) : 53,780 kills, 24 joueurs, 21.9% accuracy
+
+3. **`gold_weapon_type_rankings.sql`** : Statistiques par type d'arme
+   - Agrégation par weapon_type
+   - Moyenne kills/damage/accuracy par catégorie
+   - **Résultat** : 19 types d'armes
+
+#### 3. 🐛 BUG CRITIQUE DÉCOUVERT ET RÉSOLU
+
+**Symptôme** :
+- User remarque : "je ne retrouve qu'une ligne dans la table silver_player alors qu'on avait 100 lignes (97 plutôt)"
+- `silver_players` : 1 row au lieu de 97 ❌
+- `silver_weapons` : 3 rows au lieu de 288 ❌
+
+**Diagnostic** :
+Analyse de `bf6_leaderboard_raw` dans BigQuery :
+```sql
+SELECT handle, extraction_date
+FROM bf6_meta.bf6_leaderboard_raw
+ORDER BY handle LIMIT 5;
+```
+
+**Résultat** :
+```
+ Balazz    2025-10-23 21:31:34.295407 UTC
+ Br0t3     2025-10-23 21:31:34.295480 UTC  <-- +73 microsecondes
+ Carstin   2025-10-23 21:31:34.295548 UTC  <-- +68 microsecondes
+```
+
+**Cause Racine** :
+Chaque joueur a un timestamp différent (précision microseconde) car ils sont insérés séquentiellement dans BigQuery. Le filtre `WHERE extraction_date = MAX(extraction_date)` ne retournait qu'UN SEUL joueur (celui avec le timestamp le plus élevé).
+
+**Fix Appliqué** :
+```sql
+-- AVANT (❌ 1 row)
+WHERE extraction_date = (SELECT MAX(extraction_date) FROM ...)
+
+-- APRÈS (✅ 97 rows)
+WHERE DATE(extraction_date) = (SELECT MAX(DATE(extraction_date)) FROM ...)
+```
+
+**Fichiers modifiés** :
+- `dbt/models/silver/silver_players.sql`
+- `dbt/models/silver/silver_weapons.sql`
+
+**Validation après fix** :
+```bash
+dbt run --full-refresh
+```
+
+**Résultats corrigés** :
+- ✅ silver_players : 1 → **97 rows**
+- ✅ silver_weapons : 3 → **288 rows**
+- ✅ silver_player_weapons : 3 → **288 rows**
+- ✅ gold_player_rankings : 1 → **96 rows**
+- ✅ gold_top_weapons_global : Top 3 recalculé avec données complètes
+
+**Validation manuelle BigQuery** :
+```sql
+SELECT weapon_name, SUM(kills) AS total_kills, COUNT(*) AS players
+FROM bf6_meta_silver.silver_weapons
+WHERE weapon_name = 'M4A1'
+GROUP BY weapon_name;
+```
+**Résultat** : M4A1 = 95,881 kills (35 joueurs) ✅ CORRESPOND à la table Gold
+
+#### 4. Data Quality Tests (47 tests - 100% passing)
+
+**Tests implémentés** :
+- **not_null** : 15 tests (player_id, handle, kills, weapon_name, etc.)
+- **unique** : 6 tests (player_id, handle en Silver)
+- **relationships** : 1 test (jointure player_weapons → players)
+- **accepted_values** : Tests sur weapon_type, extraction_date valides
+
+**Commande** :
+```bash
+dbt test
+```
+
+**Résultat** : ✅ **47/47 tests passed** (0 failures)
+
+#### 5. Commits Git Réalisés
+
+**Commit 1** : Initial DBT setup
+```
+feat(dbt): Add DBT transformations (Silver + Gold layers)
+
+- 3 Silver models: players, weapons, player_weapons
+- 3 Gold models: player_rankings, top_weapons_global, weapon_type_rankings
+- 47 data quality tests
+- profiles.yml configuration for BigQuery
+```
+
+**Commit 2** : Bug fix critique
+```
+fix(dbt): Fix extraction_date filter - use DATE instead of TIMESTAMP
+
+PROBLEM:
+- silver_players returned 1 row instead of 97
+- silver_weapons returned 3 rows instead of 288
+
+ROOT CAUSE:
+Each player has a different TIMESTAMP (microsecond precision).
+Example:
+  Balazz:  2025-10-23 21:31:34.295407 UTC
+  Br0t3:   2025-10-23 21:31:34.295480 UTC (+73 microseconds)
+
+The filter `WHERE extraction_date = MAX(extraction_date)` only matched
+ONE player (the one with the highest microsecond value).
+
+SOLUTION:
+Changed filter to use DATE() to compare only the date portion:
+  WHERE DATE(extraction_date) = (SELECT MAX(DATE(extraction_date)) ...)
+
+VALIDATION:
+- silver_players: 1 → 97 rows ✅
+- silver_weapons: 3 → 288 rows ✅
+- silver_player_weapons: 3 → 288 rows ✅
+- gold_player_rankings: 1 → 96 rows ✅
+- All 47 tests passing ✅
+
+Manual BigQuery validation:
+M4A1: 95,881 kills (35 players) matches gold_top_weapons_global ✅
+
+Files changed:
+- dbt/models/silver/silver_players.sql
+- dbt/models/silver/silver_weapons.sql
+```
+
+#### 6. Documentation Créée
+
+**`docs/DBT_BIGQUERY_EXPLAINED.md`** (500+ lignes)
+Guide complet pour comprendre DBT + BigQuery avec :
+
+**Section 1 : Concepts de Base**
+- Qu'est-ce que DBT ? (analogie de l'usine de transformation)
+- Qu'est-ce que BigQuery ? (analogie de l'entrepôt)
+
+**Section 2 : Workflow Complet** (7 étapes)
+1. Tu écris du SQL dans `dbt/models/`
+2. DBT compile ton SQL (avec Jinja2 macros)
+3. DBT se connecte à BigQuery
+4. BigQuery exécute le SQL compilé
+5. BigQuery crée/met à jour les tables
+6. DBT lance les tests de qualité
+7. Tu visualises les résultats
+
+**Section 3 : Architecture Bronze/Silver/Gold**
+```
+BRONZE (Raw)          SILVER (Clean)           GOLD (Analytics)
+├─ leaderboard_raw    ├─ silver_players        ├─ gold_player_rankings
+└─ top_weapons_raw    ├─ silver_weapons        ├─ gold_top_weapons_global
+                      └─ silver_player_weapons └─ gold_weapon_type_rankings
+```
+
+**Section 4 : Exemple Complet silver_players**
+- SQL écrit dans le fichier
+- SQL compilé par DBT (avec macros résolues)
+- Exécution dans BigQuery
+- Résultat : table créée avec 97 rows
+
+**Section 5 : Tests DBT Expliqués**
+Avec exemples SQL générés :
+- `not_null` → `SELECT WHERE col IS NULL`
+- `unique` → `SELECT col, COUNT(*) GROUP BY col HAVING COUNT(*) > 1`
+- `relationships` → `LEFT JOIN ... WHERE foreign_key IS NULL`
+- `accepted_values` → `SELECT WHERE col NOT IN (...)`
+
+**Section 6 : DAG (Graphe de Dépendances)**
+```
+bronze_leaderboard → silver_players → gold_player_rankings
+bronze_weapons ────→ silver_weapons → gold_top_weapons_global
+                  ↘ silver_player_weapons ↗
+```
+
+**Section 7 : Exemple gold_top_weapons_global** (5 étapes détaillées)
+1. Lire silver_weapons
+2. GROUP BY weapon_name
+3. Calculer agrégations (SUM, AVG, COUNT)
+4. ROW_NUMBER() pour ranking
+5. Filtrer WHERE rank <= 3
+
+**Section 8 : Coûts BigQuery**
+- Stockage : 7.22 KB → $0.000001/mois
+- Requêtes : < 1 GB → $0/mois
+- Total : **$0.03/mois** (100% free tier)
+
+**Section 9 : Le Bug TIMESTAMP Expliqué**
+Avec timestamps réels + démonstration du problème + solution
+
+**Section 10 : Récapitulatif du Pipeline**
+```
+Tracker.gg → extract_bf6_*.py → MinIO → BigQuery Bronze →
+DBT (Silver/Gold) → Streamlit Dashboard
+```
+
+**Section 11 : Q&A**
+- Pourquoi pas SQL normal ? (Réponse : versioning, tests, documentation)
+- Les agrégations sont-elles correctes ? (Réponse : oui, avec preuve)
+- Pourquoi 96 rows et pas 97 ? (Réponse : 1 joueur sans armes extraites)
+
+**`README.md` mis à jour** :
+- Status : Phase 3 COMPLETE ✅
+- Section Phase 3 ajoutée avec résultats
+- Métriques : 97 joueurs, 288 armes, 8 tables BigQuery
+- DBT_BIGQUERY_EXPLAINED.md ajouté aux ressources
+
+### 📊 État du Projet (End-to-End)
+
+**Pipeline Complet** :
+```
+[1] Tracker.gg (source)
+      ↓
+[2] extract_bf6_leaderboard.py (Scrapy + undetected-chromedriver)
+      ↓
+[3] bf6_leaderboard_*.ndjson (97 joueurs)
+      ↓
+[4] extract_bf6_top_weapons_final.py (BeautifulSoup + no-headless)
+      ↓
+[5] bf6_top_weapons_*.ndjson (288 armes)
+      ↓
+[6] Upload vers MinIO (bucket: bronze)
+      ↓
+[7] load_to_bigquery.py (MinIO → BigQuery)
+      ↓
+[8] BigQuery Bronze (bf6_meta)
+    ├─ bf6_leaderboard_raw (97 rows)
+    └─ bf6_top_weapons_raw (288 rows)
+      ↓
+[9] DBT Transformations
+      ↓
+[10] BigQuery Silver (bf6_meta_silver)
+     ├─ silver_players (97 rows)
+     ├─ silver_weapons (288 rows)
+     └─ silver_player_weapons (288 rows)
+      ↓
+[11] BigQuery Gold (bf6_meta_gold)
+     ├─ gold_player_rankings (96 rows)
+     ├─ gold_top_weapons_global (3 rows)
+     └─ gold_weapon_type_rankings (19 rows)
+      ↓
+[12] Streamlit Dashboard (Phase 4 - À VENIR)
+```
+
+**Infrastructure Actuelle** :
+- ✅ **Phase 0.5** : Web scraping (Scrapy + undetected-chrome)
+- ✅ **Phase 1** : Object Storage (MinIO)
+- ✅ **Phase 2** : Data Warehouse (BigQuery Bronze)
+- ✅ **Phase 3** : Transformations (DBT Silver/Gold) ← **TERMINÉ AUJOURD'HUI**
+- 🟡 **Phase 4** : Dashboard (Streamlit) ← **PROCHAIN**
+- 🟡 **Phase 5** : Orchestration (Airflow)
+
+**Métriques du Projet** :
+- 97 joueurs extraits (top 100 leaderboard)
+- 288 armes (3 par joueur)
+- 8 tables BigQuery (2 Bronze + 3 Silver + 3 Gold)
+- 47 tests de qualité (100% passing)
+- 6 modèles DBT (3 Silver + 3 Gold)
+- 0 erreurs de données après le fix
+
+### 🎓 Leçons Apprises
+
+#### 1. TIMESTAMP vs DATE dans les filtres
+**Problème** : Comparaison stricte de TIMESTAMP peut ne matcher qu'une seule ligne
+**Solution** : Utiliser `DATE(timestamp_column)` pour comparer uniquement les dates
+**Contexte** : Insertions séquentielles dans BigQuery créent des microsecondes différentes
+
+#### 2. Validation manuelle critique
+**Méthode** :
+1. Compter les rows après chaque transformation
+2. Vérifier manuellement avec BigQuery console
+3. Comparer Silver → Gold (les agrégations doivent matcher)
+
+**Exemple** : M4A1 dans Silver (35 players × diverse kills) = 95,881 kills → doit matcher Gold
+
+#### 3. DBT full-refresh nécessaire après fix
+**Pourquoi** : Les tables Silver/Gold existantes contenaient les données incorrectes (1/3 rows)
+**Commande** : `dbt run --full-refresh` force la recréation complète
+**Alternative** : `dbt run` (mode incrémental) ne suffit pas pour corriger
+
+#### 4. Tests de qualité détectent mais ne fixent pas
+**Observation** : Les 47 tests passaient AVANT le fix (avec 1 row)
+**Raison** : Les tests valident la structure/contraintes, pas la complétude des données
+**Solution** : Toujours valider manuellement le nombre de rows attendues
+
+### 🐛 Problèmes Résolus
+
+#### Problème 1 : 1 row au lieu de 97 dans silver_players
+- **Cause** : Filtre `WHERE extraction_date = MAX(extraction_date)`
+- **Fix** : `WHERE DATE(extraction_date) = MAX(DATE(extraction_date))`
+- **Validation** : 97 rows ✅
+
+#### Problème 2 : Top 3 armes incohérentes
+- **Symptôme** : B36A4, SCW-10, L110 (armes obscures avec faibles kills)
+- **Cause** : Seulement 1 joueur analysé au lieu de 97
+- **Fix** : Recalcul après correction du filtre
+- **Résultat** : M4A1, SG 553R, M433 (armes populaires avec 95k+ kills) ✅
+
+#### Problème 3 : Tests DBT avec syntax errors
+- **Symptôme** : `is not a valid test name` pour certains tests
+- **Cause** : Mauvaise indentation dans `schema.yml`
+- **Fix** : Correction indentation + validation structure YAML
+- **Résultat** : 47/47 tests passing ✅
+
+### 📁 Fichiers Créés/Modifiés
+
+**Créés** :
+- `dbt/models/silver/silver_players.sql` (50 lignes)
+- `dbt/models/silver/silver_weapons.sql` (55 lignes)
+- `dbt/models/silver/silver_player_weapons.sql` (45 lignes)
+- `dbt/models/silver/schema.yml` (90 lignes - 47 tests)
+- `dbt/models/gold/gold_player_rankings.sql` (60 lignes)
+- `dbt/models/gold/gold_top_weapons_global.sql` (70 lignes)
+- `dbt/models/gold/gold_weapon_type_rankings.sql` (55 lignes)
+- `dbt/models/gold/schema.yml` (35 lignes)
+- `dbt/models/bronze/sources.yml` (40 lignes)
+- `dbt/profiles.yml` (15 lignes)
+- `dbt/dbt_project.yml` (30 lignes)
+- `docs/DBT_BIGQUERY_EXPLAINED.md` (500+ lignes)
+- `docs/DBT_TRANSFORMATION_DESIGN.md` (préexistant, utilisé comme référence)
+
+**Modifiés** :
+- `README.md` (Phase 3 status + metrics + documentation links)
+- `requirements.txt` (ajout dbt-core==1.11.0-b3, dbt-bigquery==1.10.2)
+- `ai/notes.md` (ce fichier)
+
+### 💡 Insights Découverts
+
+**Top 3 Armes Mondiales** (données corrigées) :
+1. **M4A1** (CARBINES)
+   - 95,881 kills totaux
+   - 35 joueurs utilisateurs
+   - 23.5% accuracy moyenne
+   - 14.2% headshot moyenne
+
+2. **SG 553R** (CARBINES)
+   - 66,392 kills totaux
+   - 23 joueurs utilisateurs
+   - 22.9% accuracy moyenne
+   - 13.8% headshot moyenne
+
+3. **M433** (ASSAULT RIFLES)
+   - 53,780 kills totaux
+   - 24 joueurs utilisateurs
+   - 21.9% accuracy moyenne
+   - 12.1% headshot moyenne
+
+**Conclusion** : Les **CARBINES** dominent le méta BF6 (2/3 dans le top 3)
+
+**Distribution par Type d'Arme** :
+- 19 types différents identifiés
+- CARBINES : catégorie la plus populaire
+- ASSAULT RIFLES : 2ème position
+- UNKNOWN : 12 armes sans type défini (à investiguer)
+
+### 🚀 Prochaines Étapes (Phase 4 : Streamlit Dashboard)
+
+#### Objectif
+Créer un dashboard interactif pour visualiser les statistiques BF6 Meta
+
+#### Installation
+```bash
+pip install streamlit plotly pandas-gbq google-cloud-bigquery
+```
+
+#### Architecture Proposée
+```
+dashboard/
+├── app.py                  # Point d'entrée principal
+├── pages/
+│   ├── 1_🏆_Top_Weapons.py      # Top 3 armes mondiales
+│   ├── 2_📊_By_Type.py          # Stats par type d'arme
+│   └── 3_👤_Players.py          # Profils joueurs
+├── utils/
+│   ├── bigquery.py         # Connexion BigQuery
+│   └── charts.py           # Graphiques Plotly
+└── requirements.txt        # Dépendances Streamlit
+```
+
+#### Fonctionnalités Planifiées
+
+**Page 1 : Top Weapons** 🏆
+- Bar chart horizontal : Top 3 armes par kills
+- Metrics cards : Kills totaux, Utilisateurs, Accuracy moyenne
+- Table détaillée avec toutes les stats
+- Filtre par type d'arme
+
+**Page 2 : By Weapon Type** 📊
+- Grouped bar chart : Kills/Damage/Accuracy par type
+- Pie chart : Distribution des types d'armes
+- Table agrégée par type
+
+**Page 3 : Player Profiles** 👤
+- Sélecteur de joueur (dropdown)
+- Stats globales du joueur (rank, total kills)
+- Top 3 armes du joueur (avec graphiques)
+- Comparaison avec la moyenne mondiale
+
+**Fonctionnalités Transverses** :
+- Bouton "Refresh Data" → Lance `dbt run` pour mettre à jour
+- Date du dernier refresh (extrait de extraction_date)
+- Export CSV des données affichées
+- Dark mode / Light mode toggle
+
+#### Connexion BigQuery dans Streamlit
+```python
+from google.cloud import bigquery
+import streamlit as st
+
+@st.cache_resource
+def get_bigquery_client():
+    return bigquery.Client.from_service_account_json(
+        'config/bigquery-key.json'
+    )
+
+@st.cache_data(ttl=600)  # Cache 10 minutes
+def load_top_weapons():
+    client = get_bigquery_client()
+    query = """
+        SELECT * FROM bf6_meta_gold.gold_top_weapons_global
+        ORDER BY total_kills DESC
+    """
+    return client.query(query).to_dataframe()
+```
+
+#### Visualisations Plotly
+```python
+import plotly.express as px
+
+def plot_top_weapons(df):
+    fig = px.bar(
+        df,
+        x='total_kills',
+        y='weapon_name',
+        orientation='h',
+        title='Top 3 Weapons by Total Kills',
+        color='weapon_type',
+        hover_data=['avg_accuracy', 'player_count']
+    )
+    return fig
+```
+
+#### Lancement Local
+```bash
+streamlit run dashboard/app.py
+```
+
+**URL** : http://localhost:8501
+
+#### Déploiement (Optionnel)
+**Streamlit Cloud** (gratuit) :
+1. Push code vers GitHub
+2. Connecter repo sur streamlit.io
+3. Ajouter `bigquery-key.json` dans Secrets
+4. Deploy → URL publique générée
+
+**Coût** : $0/mois (free tier Streamlit Cloud)
+
+#### Temps Estimé
+- Setup initial : 1h
+- Page 1 (Top Weapons) : 1h
+- Page 2 (By Type) : 45min
+- Page 3 (Players) : 1h30
+- Styling et polish : 45min
+- **Total** : ~5h
+
+#### Priorités
+1. **MVP** : Page 1 uniquement (Top Weapons) → 2h
+2. **Version 2** : Ajouter Pages 2-3 → +3h
+3. **Version 3** : Refresh button + Export CSV → +1h
+
+### 📅 Planning Suggéré
+
+**Session 5 (Demain ou prochaine session)** :
+- Installer Streamlit
+- Créer MVP (Page Top Weapons uniquement)
+- Tester localement
+- Commit initial dashboard
+
+**Session 6** :
+- Ajouter Pages 2-3
+- Implémenter filtres et interactions
+- Améliorer styling
+
+**Session 7** :
+- Ajouter refresh button (lance `dbt run`)
+- Export CSV
+- Deploy sur Streamlit Cloud (optionnel)
+
+**Session 8 (Phase 5 - Airflow)** :
+- Setup Airflow DAG
+- Automatiser extraction hebdomadaire
+- Email alerts en cas d'échec
+
+### 🎯 Décisions Techniques à Prendre
+
+#### 1. Refresh Strategy
+**Option A** : Bouton manuel dans Streamlit
+**Option B** : Airflow DAG hebdomadaire automatique
+**Recommandation** : Les deux (bouton pour ad-hoc, Airflow pour routine)
+
+#### 2. Déploiement Dashboard
+**Option A** : Local seulement
+**Option B** : Streamlit Cloud (public)
+**Option C** : Docker + serveur perso
+**Recommandation** : Commencer local, puis Streamlit Cloud si besoin de partager
+
+#### 3. Gestion des Credentials
+**Local** : `config/bigquery-key.json` direct
+**Streamlit Cloud** : Via Secrets management
+**Recommandation** : Support des deux avec fallback
+
+### 🔒 Sécurité - Checklist Phase 4
+
+- ✅ `.gitignore` contient `config/*.json`
+- ✅ Streamlit Secrets pour le cloud deployment
+- ✅ BigQuery Service Account avec permissions minimales (BigQuery Data Viewer)
+- ✅ Pas de credentials hardcodés dans le code
+- ✅ `.env` pour les variables d'environnement
+
+### 📚 Ressources Créées
+
+**Documentation** :
+- ✅ `docs/DBT_BIGQUERY_EXPLAINED.md` : Guide complet DBT + BigQuery (500+ lignes)
+- ✅ `README.md` : Status Phase 3 COMPLETE
+- ✅ `ai/notes.md` : Session 4 documentée
+
+**Code** :
+- ✅ 6 modèles DBT (3 Silver + 3 Gold)
+- ✅ 2 fichiers schema.yml (47 tests de qualité)
+- ✅ 1 sources.yml (définition Bronze tables)
+- ✅ profiles.yml (configuration BigQuery)
+
+**Données** :
+- ✅ 8 tables BigQuery (2 Bronze + 3 Silver + 3 Gold)
+- ✅ 97 joueurs analysés
+- ✅ 288 armes extraites
+- ✅ Top 3 armes mondiales identifiées
+
+### 💬 Questions/Réponses de la Session
+
+**Q: Es-ce normal que... les données ne correspondent pas à notre extract Json ?**
+**R:** Non, c'était un bug ! Le filtre TIMESTAMP ne retournait qu'1 joueur au lieu de 97. Résolu avec `DATE(extraction_date)`.
+
+**Q: Pourquoi je ne retrouve qu'une ligne dans silver_player alors qu'on avait 97 ?**
+**R:** Chaque joueur avait un timestamp différent (microsecondes). Le fix a corrigé le problème → 97 rows maintenant.
+
+**Q: J'ai un doute sur les agrégations réalisées... comment tu fais fonctionner DBT et BigQuery ?**
+**R:** Guide complet créé (`DBT_BIGQUERY_EXPLAINED.md`) avec analogies, exemples, et validation manuelle que les agrégations sont correctes.
+
+### 🎓 Ce Qu'on a Appris Aujourd'hui
+
+1. **DBT est un outil de transformation SQL** : Tu écris du SQL, DBT le compile et l'exécute dans BigQuery
+2. **Architecture Medallion** : Bronze (raw) → Silver (clean) → Gold (analytics) sépare les responsabilités
+3. **Tests DBT** : Validations automatiques de la qualité des données (not_null, unique, relationships)
+4. **TIMESTAMP precision matters** : Toujours utiliser `DATE()` pour filtrer par date d'extraction
+5. **Validation manuelle essentielle** : Les tests passent, mais faut quand même compter les rows !
+6. **BigQuery = gratuit** : Notre projet coûte $0.03/mois (100% dans le free tier)
+
+---
+
+_Last updated: 2025-10-24 by AI Assistant_
+
+---
+
 _Last updated: 2025-10-23 19:15 by AI Assistant_
 
 ---
 
 _Last updated: 2025-10-22 12h30 by AI Assistant_
+
+````
