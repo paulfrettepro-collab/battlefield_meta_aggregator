@@ -9,18 +9,29 @@ import plotly.graph_objects as go
 import pandas as pd
 
 
-def plot_top_weapons_bar(df: pd.DataFrame) -> go.Figure:
+def plot_top_weapons_bar(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     """
     Create a horizontal bar chart of top weapons by total kills.
     
     Args:
         df: DataFrame with columns: weapon_name, total_kills, weapon_type
+        theme: "dark" or "light" mode
         
     Returns:
         plotly.graph_objects.Figure: Configured bar chart
     """
     # Define color palette
     colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+    
+    # Theme colors
+    if theme == "dark":
+        bg_color = 'rgba(14, 17, 23, 0)'
+        text_color = '#FAFAFA'
+        grid_color = 'rgba(255, 255, 255, 0.1)'
+    else:
+        bg_color = 'rgba(255, 255, 255, 0)'
+        text_color = '#262730'
+        grid_color = 'rgba(0, 0, 0, 0.1)'
     
     fig = px.bar(
         df,
@@ -48,7 +59,7 @@ def plot_top_weapons_bar(df: pd.DataFrame) -> go.Figure:
             'text': '🏆 Top 3 Weapons by Total Kills',
             'x': 0.5,
             'xanchor': 'center',
-            'font': {'size': 24, 'weight': 'bold'}
+            'font': {'size': 24, 'weight': 'bold', 'color': text_color}
         },
         xaxis_title="Total Kills",
         yaxis_title="",
@@ -56,12 +67,18 @@ def plot_top_weapons_bar(df: pd.DataFrame) -> go.Figure:
         legend_title="Weapon Type",
         height=400,
         hovermode='closest',
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor=bg_color,
+        paper_bgcolor=bg_color,
+        font={'color': text_color}
     )
     
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
-    fig.update_yaxes(showgrid=False)
+    fig.update_xaxes(
+        showgrid=True, 
+        gridwidth=1, 
+        gridcolor=grid_color,
+        color=text_color
+    )
+    fig.update_yaxes(showgrid=False, color=text_color)
     
     return fig
 
@@ -107,16 +124,27 @@ def plot_weapon_types_comparison(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def plot_accuracy_scatter(df: pd.DataFrame) -> go.Figure:
+def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     """
     Create a scatter plot of accuracy vs kills.
     
     Args:
         df: DataFrame with columns: weapon_name, total_kills, avg_accuracy
+        theme: "dark" or "light" mode
         
     Returns:
         plotly.graph_objects.Figure: Configured scatter plot
     """
+    # Theme colors
+    if theme == "dark":
+        bg_color = 'rgba(14, 17, 23, 0)'
+        text_color = '#FAFAFA'
+        grid_color = 'rgba(255, 255, 255, 0.1)'
+    else:
+        bg_color = 'rgba(255, 255, 255, 0)'
+        text_color = '#262730'
+        grid_color = 'rgba(0, 0, 0, 0.1)'
+    
     fig = px.scatter(
         df,
         x='avg_accuracy',
@@ -141,20 +169,27 @@ def plot_accuracy_scatter(df: pd.DataFrame) -> go.Figure:
             'text': '🎯 Accuracy vs Kills',
             'x': 0.5,
             'xanchor': 'center',
-            'font': {'size': 20}
+            'font': {'size': 20, 'color': text_color}
         },
         height=500,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor=bg_color,
+        paper_bgcolor=bg_color,
+        font={'color': text_color}
     )
     
     fig.update_xaxes(
         showgrid=True,
         gridwidth=1,
-        gridcolor='rgba(128,128,128,0.2)',
-        tickformat='.0%'
+        gridcolor=grid_color,
+        tickformat='.0%',
+        color=text_color
     )
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
+    fig.update_yaxes(
+        showgrid=True, 
+        gridwidth=1, 
+        gridcolor=grid_color,
+        color=text_color
+    )
     
     return fig
 

@@ -29,48 +29,129 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
-    <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        color: #FF6B6B;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        font-size: 1.2rem;
-        text-align: center;
-        color: #666;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        text-align: center;
-    }
-    .stMetric {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
+
+def apply_custom_css(theme_mode="dark"):
+    """Apply custom CSS based on theme mode"""
+    
+    if theme_mode == "dark":
+        bg_color = "#0E1117"
+        text_color = "#FAFAFA"
+        card_bg = "#1E1E1E"
+        border_color = "#333333"
+        accent_color = "#FF6B6B"
+        secondary_text = "#B0B0B0"
+    else:  # light
+        bg_color = "#FFFFFF"
+        text_color = "#262730"
+        card_bg = "#F0F2F6"
+        border_color = "#E0E0E0"
+        accent_color = "#FF6B6B"
+        secondary_text = "#666666"
+    
+    st.markdown(f"""
+        <style>
+        /* Main background */
+        .stApp {{
+            background-color: {bg_color};
+            color: {text_color};
+        }}
+        
+        /* Headers */
+        .main-header {{
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: {accent_color};
+            margin-bottom: 1rem;
+        }}
+        .sub-header {{
+            font-size: 1.2rem;
+            text-align: center;
+            color: {secondary_text};
+            margin-bottom: 2rem;
+        }}
+        
+        /* Metric cards */
+        [data-testid="stMetricValue"] {{
+            color: {text_color};
+            font-size: 2rem;
+            font-weight: bold;
+        }}
+        [data-testid="stMetricLabel"] {{
+            color: {secondary_text};
+            font-size: 1rem;
+        }}
+        
+        /* Tables */
+        .dataframe {{
+            background-color: {card_bg} !important;
+            color: {text_color} !important;
+        }}
+        .dataframe th {{
+            background-color: {accent_color} !important;
+            color: white !important;
+            font-weight: bold;
+        }}
+        .dataframe td {{
+            background-color: {card_bg} !important;
+            color: {text_color} !important;
+            border-color: {border_color} !important;
+        }}
+        
+        /* Sidebar */
+        [data-testid="stSidebar"] {{
+            background-color: {card_bg};
+        }}
+        
+        /* Text elements */
+        p, span, div {{
+            color: {text_color};
+        }}
+        
+        /* Headers h1-h6 */
+        h1, h2, h3, h4, h5, h6 {{
+            color: {text_color} !important;
+        }}
+        
+        /* Tab labels */
+        .stTabs [data-baseweb="tab-list"] button {{
+            color: {secondary_text};
+        }}
+        .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
+            color: {accent_color};
+        }}
+        
+        /* Info boxes */
+        .stAlert {{
+            background-color: {card_bg};
+            color: {text_color};
+            border-color: {border_color};
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
 
 def main():
     """Main dashboard application"""
     
-    # Header
-    st.markdown('<h1 class="main-header">🎮 Battlefield 6 Meta Dashboard</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Top Weapons & Player Statistics</p>', unsafe_allow_html=True)
-    
-    # Sidebar
+    # Sidebar - Theme selector (must be before other UI elements)
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x100/FF6B6B/FFFFFF?text=BF6+Meta", use_container_width=True)
         st.title("⚙️ Controls")
+        
+        # Theme toggle
+        theme_mode = st.radio(
+            "🎨 Theme",
+            options=["Dark", "Light"],
+            index=0,  # Default to Dark
+            horizontal=True
+        )
+        
+        # Apply theme CSS
+        apply_custom_css(theme_mode.lower())
+        
+        st.divider()
+        
+        st.image("https://via.placeholder.com/300x100/FF6B6B/FFFFFF?text=BF6+Meta", use_container_width=True)
         
         # Data refresh button
         if st.button("🔄 Refresh Data", use_container_width=True):
@@ -83,6 +164,19 @@ def main():
         st.subheader("📅 Data Status")
         last_date = get_last_extraction_date()
         st.info(f"**Last Update:**\n\n{last_date}")
+        
+        # Data source info
+        st.divider()
+        st.subheader("🗄️ Data Source")
+        st.markdown("""
+        **BigQuery Tables:**
+        - 🥉 Bronze: Raw data
+        - 🥈 Silver: Cleaned data
+        - 🥇 **Gold: Analytics** ✅
+        
+        This dashboard displays data from the **Gold layer** 
+        (aggregated & analytics-ready).
+        """)
         
         # About section
         st.divider()
@@ -101,6 +195,10 @@ def main():
         **GitHub:** [BF6 Meta Aggregator](https://github.com/paulfrettepro-collab/battlefield_meta_aggregator)
         """)
     
+    # Header (after sidebar to apply CSS)
+    st.markdown('<h1 class="main-header">🎮 Battlefield 6 Meta Dashboard</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Top Weapons & Player Statistics from Gold Layer</p>', unsafe_allow_html=True)
+    
     # Main content
     try:
         # Load data
@@ -114,6 +212,9 @@ def main():
         
         # === SECTION 1: KEY METRICS ===
         st.header("📊 Key Statistics")
+        
+        # Info badge about data source
+        st.info("📊 **Data Source:** BigQuery Gold Layer (`gold_top_weapons_global`) - Aggregated analytics-ready data")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -151,7 +252,7 @@ def main():
         st.header("🏆 Top 3 Weapons by Total Kills")
         
         # Bar chart
-        fig_bar = plot_top_weapons_bar(df_top_weapons)
+        fig_bar = plot_top_weapons_bar(df_top_weapons, theme=theme_mode.lower())
         st.plotly_chart(fig_bar, use_column_width=True)
         
         st.divider()
@@ -184,10 +285,13 @@ def main():
             
             # Select columns to display
             columns_to_show = ['Weapon', 'Type', 'Total Kills', 'Players', 'Avg Accuracy', 'Avg Headshot %', 'Avg Damage']
+            
+            # Style the dataframe
             st.dataframe(
                 df_display[columns_to_show],
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                height=200
             )
             
             # Download button
@@ -201,7 +305,7 @@ def main():
         
         with tab2:
             # Accuracy vs Kills scatter plot
-            fig_scatter = plot_accuracy_scatter(df_top_weapons)
+            fig_scatter = plot_accuracy_scatter(df_top_weapons, theme=theme_mode.lower())
             st.plotly_chart(fig_scatter, use_column_width=True)
             
             st.markdown("""
