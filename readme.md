@@ -5,7 +5,9 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Scrapy](https://img.shields.io/badge/Scrapy-2.11-green.svg)](https://scrapy.org/)
 [![BigQuery](https://img.shields.io/badge/BigQuery-Active-blue.svg)](https://cloud.google.com/bigquery)
-[![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-green.svg)]()
+[![DBT](https://img.shields.io/badge/DBT-1.11.0-orange.svg)](https://www.getdbt.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
+[![Status](https://img.shields.io/badge/Status-Phase%204%20Complete-green.svg)]()
 
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
@@ -19,9 +21,11 @@
 **Orchestration** : Cron job hebdomadaire (dimanches 2h)  
 **Orchestration future** : Apache Airflow (exécution quotidienne automatisée)
 
-**🎉 Phase 2 (BigQuery) COMPLÈTE** : 100 joueurs chargés | 35 armes identifiées | Pipeline opérationnel
+**🎉 Phase 4 (Streamlit Dashboard) COMPLÈTE** : Dashboard MVP fonctionnel | Top 3 armes visualisé | Metrics interactifs
 
-**🚀 Phase 2.5 (Fresh Data) EN COURS** : Nouveau pipeline 2 fichiers | 97 joueurs extraits | Extraction weapons demain
+**🏆 RÉSULTAT** : M4A1 (95,881 kills, 35 joueurs), SG 553R (66,392 kills, 23 joueurs), M433 (53,780 kills, 24 joueurs)
+
+**📊 DASHBOARD EN LIGNE** : http://localhost:8501 (local) | Déploiement cloud à venir
 ---
 
 ## 🎯 Ce Qu'on Extrait
@@ -318,19 +322,55 @@ battlefield_meta_aggregator/
 - **Weapons** : Top 3 armes par joueur (8 stats détaillées)
 - **Jointure** : Via `handle` (clé primaire commune)
 
-### �🔵 Phase 3 : DBT Transformations (2-3h)
-- [ ] Installer DBT Core
-- [ ] Modèle Bronze → Silver (nettoyage, déduplication)
-- [ ] Modèle Silver → Gold (agrégations)
-- [ ] Tables cibles :
-  - `gold_top_weapons_by_week`
-  - `gold_weapon_popularity_trends`
-  - `gold_meta_weapons` (Top 10 global)
+### ✅ Phase 3 : DBT Transformations **COMPLÈTE** (24 oct 2025)
+- [x] Installer DBT Core + dbt-bigquery
+- [x] Configuration profiles.yml (service-account)
+- [x] Modèles Bronze (sources.yml) - 2 tables
+- [x] Modèles Silver (nettoyage, normalisation) - 3 modèles
+  - `silver_players` (97 joueurs)
+  - `silver_weapons` (288 armes)
+  - `silver_player_weapons` (jointure enrichie)
+- [x] Modèles Gold (agrégations) - 3 modèles
+  - `gold_top_weapons_global` (Top 3 MVP)
+  - `gold_top_weapons_by_type` (Top 3 par catégorie)
+  - `gold_player_rankings` (96 joueurs classés)
+- [x] Tests de qualité : 47/47 réussis ✅
+- [x] **Fix critique** : Filtre extraction_date (TIMESTAMP → DATE)
+- [x] Documentation complète (`dbt/README.md`, `docs/PHASE_3_COMPLETE.md`)
 
-### 🔵 Phase 4 : Streamlit Dashboard (2-3h)
-- [ ] Interface Top 10 armes meta
-- [ ] Graphique évolution popularité
-- [ ] Filtres : Semaine, Arme
+**Résultats** :
+- 🏆 Top 3 armes : M4A1 (95,881 kills), SG 553R (66,392 kills), M433 (53,780 kills)
+- 📊 8 tables BigQuery créées (Bronze, Silver, Gold)
+- ⚡ Performance : dbt run (12s), dbt test (17s)
+- 🧪 Qualité : 100% tests validés
+
+### ✅ Phase 4 : Streamlit Dashboard **COMPLÈTE** (25 oct 2025)
+- [x] Installation Streamlit + Plotly + pandas-gbq
+- [x] Structure dashboard (app.py + utils/)
+- [x] Connecteur BigQuery avec cache (10 min TTL)
+- [x] Visualisations Plotly :
+  - Bar chart horizontal (Top 3 armes)
+  - Scatter plot (Accuracy vs Kills)
+  - Weapon cards (3 profils détaillés)
+- [x] Metrics interactifs :
+  - Total Kills : 216,053
+  - Total Players : 82
+  - Avg Accuracy : 22.8%
+  - Avg Headshot : 13.4%
+- [x] Fonctionnalités :
+  - Refresh button (clear cache)
+  - CSV export
+  - Table view détaillée
+  - Last extraction date
+- [x] Documentation (`dashboard/README.md`, `docs/STREAMLIT_GUIDE.md`)
+
+**MVP Fonctionnel** :
+- 🌐 URL : http://localhost:8501
+- ⚡ Cache : 10 minutes (requêtes BigQuery)
+- 📊 3 charts + 4 metrics + 3 weapon cards
+- 📥 Export CSV disponible
+
+### 🔵 Phase 5 : Airflow Orchestration (En attente)
 - [ ] Tableau kills par arme
 
 ### 🔵 Phase 5 : Automation Hebdomadaire (1-2h)
@@ -342,12 +382,16 @@ battlefield_meta_aggregator/
 ---
 
 **Temps total estimé** : 8-12 heures (phases 1-5)  
-**Statut actuel** : Phase 2 validée à 100% ✅ | Phase 3 (DBT) prochaine 🟡
+**Statut actuel** : Phase 4 (Streamlit MVP) validée à 100% ✅ | Phase 5 (Airflow) prochaine 🟡
 
 **📈 Métriques actuelles** :
-- ✅ 100 joueurs extraits
-- ✅ 35 armes uniques identifiées
-- ✅ Pipeline complet fonctionnel (Tracker.gg → MinIO → BigQuery)
+- ✅ 97 joueurs extraits (top 100 leaderboard)
+- ✅ 288 armes détaillées (3 par joueur)
+- ✅ 8 tables BigQuery (Bronze/Silver/Gold)
+- ✅ 47/47 tests de qualité réussis
+- ✅ Dashboard Streamlit fonctionnel (http://localhost:8501)
+- ✅ 3 visualisations Plotly + 4 metrics interactives
+- ✅ Pipeline complet end-to-end (Tracker.gg → MinIO → BigQuery → DBT → Streamlit)
 - ✅ Coût BigQuery : 0€ (Free Tier)
 
 ---
@@ -447,6 +491,8 @@ EXTRACTION_SCHEDULE=0 2 * * 0  # Sundays 2am
 - [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver) - Bypass Cloudflare
 - [DBT Core Docs](https://docs.getdbt.com/)
 - [Streamlit Docs](https://docs.streamlit.io/)
+- [Plotly Python](https://plotly.com/python/)
+- [BigQuery Documentation](https://cloud.google.com/bigquery/docs)
 - [MinIO Docs](https://min.io/docs/minio/linux/index.html)
 
 ---
@@ -457,13 +503,18 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 ---
 
-**🎯 NEXT STEP** : Phase 3 - DBT Transformations (modèles Bronze → Silver → Gold)
+**🎯 NEXT STEP** : Phase 5 - Airflow Orchestration (automatisation hebdomadaire)
 
 **📚 Documentation complète** :
 - 🔍 **BigQuery** : `docs/BIGQUERY_GUIDE.md` (setup, queries, troubleshooting)
+- 🏗️ **DBT** : `dbt/README.md` (modèles, transformations, tests)
+- 📊 **Streamlit** : `docs/STREAMLIT_GUIDE.md` (dashboard, cache, visualisations)
+- 📋 **Phase 3** : `docs/PHASE_3_COMPLETE.md` (récapitulatif DBT)
 - 🧠 **CLI/Git/Python/SQL** : `docs/CLI_GIT_GUIDE.md` (moyens mnémotechniques)
-- 📊 **Collaboration** : `ai/notes.md` (historique sessions + décisions)
+- � **Collaboration** : `ai/notes.md` (historique sessions + décisions)
+- 🎓 **DBT & BigQuery** : `docs/DBT_BIGQUERY_EXPLAINED.md` (guide débutant complet)
+- 🎮 **Dashboard** : `dashboard/README.md` (installation, fonctionnalités)
 
 ---
 
-**Dernière mise à jour** : 23 octobre 2025 - Phase 2.5 en cours (Fresh Data Pipeline)
+**Dernière mise à jour** : 25 octobre 2025 - Phase 4 complète (Streamlit Dashboard MVP)
