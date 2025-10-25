@@ -152,7 +152,7 @@ def main():
         
         # Bar chart
         fig_bar = plot_top_weapons_bar(df_top_weapons)
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, use_column_width=True)
         
         st.divider()
         
@@ -202,7 +202,7 @@ def main():
         with tab2:
             # Accuracy vs Kills scatter plot
             fig_scatter = plot_accuracy_scatter(df_top_weapons)
-            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.plotly_chart(fig_scatter, use_column_width=True)
             
             st.markdown("""
             **Insights:**

@@ -36,25 +36,34 @@ def load_top_weapons() -> pd.DataFrame:
     
     Returns:
         pd.DataFrame: Top 3 weapons with stats (weapon_name, weapon_type, 
-                     total_kills, avg_accuracy, avg_headshot_pct, player_count)
+                     total_kills, avg_accuracy, avg_headshot_pct, nb_players_using)
     """
     client = get_bigquery_client()
     
     query = """
         SELECT 
+            global_rank,
             weapon_name,
             weapon_type,
             total_kills,
+            nb_players_using,
+            avg_kills_per_player,
             avg_accuracy,
             avg_headshot_pct,
-            player_count,
-            avg_damage,
-            avg_time_played
+            total_damage_dealt,
+            generated_at
         FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_top_weapons_global`
-        ORDER BY total_kills DESC
+        ORDER BY global_rank
     """
     
     df = client.query(query).to_dataframe()
+    
+    # Rename columns to match dashboard expectations
+    df = df.rename(columns={
+        'nb_players_using': 'player_count',
+        'total_damage_dealt': 'avg_damage'
+    })
+    
     return df
 
 
@@ -68,16 +77,18 @@ def load_weapon_types_stats() -> pd.DataFrame:
     """
     client = get_bigquery_client()
     
+    # Use aggregation on silver_weapons since we don't have a dedicated weapon_type table
     query = """
         SELECT 
             weapon_type,
-            total_weapons,
-            total_kills,
-            avg_accuracy,
-            avg_headshot_pct,
-            avg_damage
-        FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_weapon_type_rankings`
+            COUNT(DISTINCT weapon_name) AS total_weapons,
+            SUM(weapon_kills) AS total_kills,
+            ROUND(AVG(accuracy), 3) AS avg_accuracy,
+            ROUND(AVG(headshot_pct), 3) AS avg_headshot_pct,
+            SUM(total_damage) AS avg_damage
+        FROM `battlefield-meta-aggregator.bf6_meta_silver.silver_weapons`
         WHERE weapon_type != 'UNKNOWN'
+        GROUP BY weapon_type
         ORDER BY total_kills DESC
         LIMIT 10
     """
@@ -98,16 +109,16 @@ def load_player_rankings() -> pd.DataFrame:
     
     query = """
         SELECT 
-            handle,
+            player_handle AS handle,
             player_rank,
-            total_kills,
-            avg_accuracy,
-            avg_headshot_pct,
-            kills_rank,
-            accuracy_rank,
-            headshot_rank
+            player_total_kills AS total_kills,
+            main_weapon,
+            main_weapon_type,
+            main_weapon_kills,
+            avg_accuracy_top3 AS avg_accuracy,
+            avg_headshot_pct_top3 AS avg_headshot_pct
         FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_player_rankings`
-        ORDER BY total_kills DESC
+        ORDER BY player_total_kills DESC
     """
     
     df = client.query(query).to_dataframe()
@@ -131,14 +142,15 @@ def load_player_weapons(handle: str) -> pd.DataFrame:
         SELECT 
             weapon_name,
             weapon_type,
-            kills,
+            weapon_kills AS kills,
             accuracy,
             headshot_pct,
-            damage,
-            time_played
+            total_damage AS damage,
+            time_played,
+            weapon_rank_for_player
         FROM `battlefield-meta-aggregator.bf6_meta_silver.silver_player_weapons`
-        WHERE handle = '{handle}'
-        ORDER BY kills DESC
+        WHERE player_handle = '{handle}'
+        ORDER BY weapon_kills DESC
     """
     
     df = client.query(query).to_dataframe()
