@@ -86,16 +86,40 @@ def apply_custom_css(theme_mode="dark"):
         .dataframe {{
             background-color: {card_bg} !important;
             color: {text_color} !important;
+            border: 2px solid {accent_color} !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
         }}
         .dataframe th {{
             background-color: {accent_color} !important;
             color: white !important;
             font-weight: bold;
+            padding: 12px !important;
+            border-bottom: 2px solid {accent_color} !important;
         }}
         .dataframe td {{
             background-color: {card_bg} !important;
             color: {text_color} !important;
             border-color: {border_color} !important;
+            padding: 10px !important;
+        }}
+        .dataframe tr:hover td {{
+            background-color: {accent_color}22 !important;
+        }}
+        
+        /* Metric cards with borders */
+        [data-testid="stMetric"] {{
+            background-color: {card_bg};
+            border: 2px solid {border_color};
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        [data-testid="stMetric"]:hover {{
+            border-color: {accent_color};
+            box-shadow: 0 4px 8px rgba(255,107,107,0.2);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
         }}
         
         /* Sidebar */
@@ -126,6 +150,32 @@ def apply_custom_css(theme_mode="dark"):
             background-color: {card_bg};
             color: {text_color};
             border-color: {border_color};
+            border-radius: 10px;
+            border-width: 2px;
+        }}
+        
+        /* Tab content */
+        .stTabs [data-baseweb="tab-panel"] {{
+            background-color: {card_bg};
+            border: 2px solid {border_color};
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
+        }}
+        
+        /* Weapon cards */
+        .weapon-card {{
+            background-color: {card_bg};
+            border: 2px solid {border_color};
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }}
+        .weapon-card:hover {{
+            border-color: {accent_color};
+            box-shadow: 0 4px 12px rgba(255,107,107,0.3);
+            transform: translateY(-4px);
+            transition: all 0.3s ease;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -324,21 +374,26 @@ def main():
         
         for idx, (_, weapon) in enumerate(df_top_weapons.iterrows()):
             with cols[idx]:
-                # Card container
-                with st.container():
-                    # Rank badge
-                    rank_emoji = ["🥇", "🥈", "🥉"][idx]
-                    st.markdown(f"### {rank_emoji} #{idx + 1}: {weapon['weapon_name']}")
-                    
-                    # Weapon type badge
-                    st.caption(f"**Type:** {weapon['weapon_type']}")
-                    
-                    # Stats
-                    st.metric("Total Kills", format_number(weapon['total_kills']))
-                    st.metric("Players Using", format_number(weapon['player_count']))
-                    st.metric("Avg Accuracy", format_percentage(weapon['avg_accuracy']))
-                    st.metric("Avg Headshot %", format_percentage(weapon['avg_headshot_pct']))
-                    st.metric("Avg Damage", format_number(weapon['avg_damage'], 0))
+                # Card container with custom class
+                st.markdown('<div class="weapon-card">', unsafe_allow_html=True)
+                
+                # Rank badge
+                rank_emoji = ["🥇", "🥈", "🥉"][idx]
+                st.markdown(f"### {rank_emoji} #{idx + 1}: {weapon['weapon_name']}")
+                
+                # Weapon type badge
+                st.caption(f"**Type:** {weapon['weapon_type']}")
+                
+                st.divider()
+                
+                # Stats
+                st.metric("Total Kills", format_number(weapon['total_kills']))
+                st.metric("Players Using", format_number(weapon['player_count']))
+                st.metric("Avg Accuracy", format_percentage(weapon['avg_accuracy']))
+                st.metric("Avg Headshot %", format_percentage(weapon['avg_headshot_pct']))
+                st.metric("Avg Damage", format_number(weapon['avg_damage'], 0))
+                
+                st.markdown('</div>', unsafe_allow_html=True)
         
         # Footer
         st.divider()

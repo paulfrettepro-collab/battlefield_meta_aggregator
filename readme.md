@@ -17,15 +17,17 @@
 
 **Chaque semaine**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leurs **top 3 armes** (nom + kills), calculer les **armes les plus populaires** et afficher les tendances dans une petite UI.
 
-**Pipeline** : `Selenium` → `MinIO (Bronze, NDJSON)` → `BigQuery` → `DBT (Silver/Gold)` → `Streamlit`  
-**Orchestration** : Cron job hebdomadaire (dimanches 2h)  
-**Orchestration future** : Apache Airflow (exécution quotidienne automatisée)
+**Pipeline** : `Selenium` → `BigQuery (Bronze)` → `DBT (Silver/Gold)` → `Streamlit`  
+**Orchestration** : Apache Airflow (exécution hebdomadaire automatisée - Phase 5)
 
-**🎉 Phase 4 (Streamlit Dashboard) COMPLÈTE** : Dashboard MVP fonctionnel | Top 3 armes visualisé | Metrics interactifs
+**🎉 Phase 4 (Streamlit Dashboard) COMPLÈTE** : Dashboard MVP multi-pages | 3 pages interactives | Dark/Light themes | Filtres dynamiques
 
-**🏆 RÉSULTAT** : M4A1 (95,881 kills, 35 joueurs), SG 553R (66,392 kills, 23 joueurs), M433 (53,780 kills, 24 joueurs)
+**🏆 RÉSULTAT** : M4A1 (95,881 kills, 65 joueurs), SG 553R (66,392 kills, 48 joueurs), M433 (53,780 kills, 42 joueurs)
 
-**📊 DASHBOARD EN LIGNE** : http://localhost:8501 (local) | Déploiement cloud à venir
+**📊 DASHBOARD** : 
+- 🏠 Local : http://localhost:8501
+- 🌐 Réseau : http://192.168.1.12:8501 (accessible WiFi local)
+- ☁️ Cloud : En cours de déploiement (Phase 4.5)
 ---
 
 ## 🎯 Ce Qu'on Extrait
@@ -100,41 +102,43 @@ Top armes dans le leaderboard (exemples) :
 │  • Leaderboard + Player Profiles                         │
 │  • Extraction: Selenium + undetected-chromedriver        │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ extract_bf6_top_weapons.py (hebdo)
+                  │ extract_bf6_leaderboard.py
+                  │ extract_bf6_top_weapons_final.py
                   ▼
 ┌───────────────────────────────────────────────────────────┐
-│         BRONZE - Data Lake (MinIO S3-compatible)          │
-│  • Fichiers NDJSON bruts                                  │
-│  • tracker-gg/top-weapons/bf6_top_weapons_*.ndjson        │
-└─────────────────┬─────────────────────────────────────────┘
-                  │ Load to BigQuery
-                  ▼
-┌───────────────────────────────────────────────────────────┐
-│            SILVER - BigQuery + DBT                        │
-│  • Nettoyage, typage, déduplication                       │
-│  • Calculs KPIs (fréquence armes, meta trends)            │
+│         BRONZE - BigQuery (Tables brutes)                 │
+│  • bf6_meta.bronze_leaderboard (97 joueurs)               │
+│  • bf6_meta.bronze_top_weapons (288 armes)                │
 └─────────────────┬─────────────────────────────────────────┘
                   │ DBT transformations
                   ▼
 ┌───────────────────────────────────────────────────────────┐
-│              GOLD - BigQuery (Tables finales)             │
-│  • top_weapons_by_week                                    │
-│  • weapon_popularity_trends                               │
-│  • player_specializations                                 │
+│         SILVER - BigQuery (Tables nettoyées)              │
+│  • silver_players (97 joueurs)                            │
+│  • silver_weapons (288 armes)                             │
+│  • silver_player_weapons (jointure enrichie)              │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ SQL queries
+                  │ DBT aggregations
                   ▼
 ┌───────────────────────────────────────────────────────────┐
-│                 DASHBOARD - Streamlit                     │
-│  • Affichage Meta weapons (Top 10)                        │
-│  • Filtres : Semaine, Arme                                │
-│  • Graphiques évolution popularité                        │
+│         GOLD - BigQuery (Tables finales)                  │
+│  • gold_top_weapons_global (Top 3 MVP)                    │
+│  • gold_top_weapons_by_type (Top 3 par catégorie)         │
+│  • gold_player_rankings (96 joueurs)                      │
+└─────────────────┬─────────────────────────────────────────┘
+                  │ BigQuery connector
+                  ▼
+┌───────────────────────────────────────────────────────────┐
+│              DASHBOARD - Streamlit                        │
+│  • Top 3 Weapons (page principale)                        │
+│  • All Weapons (filtres dynamiques)                       │
+│  • All Players (recherche + classement)                   │
 └───────────────────────────────────────────────────────────┘
                   ▲
 ┌─────────────────┴─────────────────────────────────────────┐
-│         AUTOMATION - Cron Job (launchd/crontab)           │
-│  • Exécution hebdomadaire (dimanches 2h)                  │
-│  • Extract → Upload MinIO → Notification                  │
+│         ORCHESTRATION - Apache Airflow (Phase 5)          │
+│  • DAG hebdomadaire (dimanches 2h UTC)                    │
+│  • Extract → Load BigQuery → DBT → Notifications          │
 └───────────────────────────────────────────────────────────┘
 ```
 
@@ -145,12 +149,12 @@ Top armes dans le leaderboard (exemples) :
 | Composant          | Technologie                    | Rôle                                      |
 |--------------------|--------------------------------|-------------------------------------------|
 | **Extraction**     | `Selenium` + `undetected-chromedriver` | Bypass Cloudflare + scraping HTML  |
-| **Storage Bronze** | `MinIO` (S3-compatible)        | Data Lake NDJSON (fichiers bruts)         |
-| **Data Warehouse** | `Google BigQuery`              | Entrepôt cloud SQL (gratuit jusqu'à 1TB)  |
+| **Data Warehouse** | `Google BigQuery`              | Entrepôt cloud SQL (Bronze/Silver/Gold)   |
+| **Data Lake**      | `MinIO` (S3-compatible)        | Stockage données non-structurées (futur)  |
 | **Transformation** | `DBT Core`                     | Modèles SQL Bronze → Silver → Gold        |
 | **Visualisation**  | `Streamlit`                    | Dashboard interactif Python               |
-| **Automation**     | `Cron` / `launchd`             | Extraction hebdomadaire automatique       |
-| **Conteneurisation**| `Docker` + `docker-compose`   | MinIO, environnement isolé                |
+| **Orchestration**  | `Apache Airflow`               | DAGs pour automatisation hebdomadaire     |
+| **Conteneurisation**| `Docker` + `docker-compose`   | MinIO + Airflow, environnements isolés    |
 
 ---
 
@@ -173,16 +177,27 @@ docker --version
 ### Extraction des données (✅ PRODUCTION-READY)
 
 ```bash
-# Extraction hebdomadaire des top 100 joueurs + top 3 armes
+# 1. Extraction du leaderboard (top 100 joueurs)
 cd /Users/paulfrette/Github_pro_folder/battlefield_meta_aggregator
-python scripts/extract_bf6_top_weapons.py
+python scripts/extract_bf6_leaderboard.py
+# Résultat: data/bronze/tracker_gg/leaderboard/bf6_leaderboard_YYYY-MM-DD_HHMMSS.ndjson
+# Durée: ~25 secondes
 
+# 2. Extraction des top 3 armes par joueur
+python scripts/extract_bf6_top_weapons_final.py
 # Résultat: data/bronze/tracker_gg/top_weapons/bf6_top_weapons_YYYY-MM-DD_HHMMSS.ndjson
-# Durée: ~31 minutes (15s/joueur pour Cloudflare bypass)
-# Succès: 100% garanti avec undetected-chromedriver
+# Durée: ~32-35 minutes (97 joueurs × 20s pour Cloudflare bypass)
+
+# 3. Chargement dans BigQuery
+python scripts/load_to_bigquery.py
+
+# 4. Transformations DBT
+cd dbt && dbt run && dbt test
 ```
 
-📂 **Dernière extraction** : `bf6_top_weapons_2025-10-20_200220.ndjson` (22.66 KB, 100 joueurs)
+📂 **Dernières extractions** : 
+- Leaderboard : `bf6_leaderboard_2025-10-23_185748.ndjson` (97 joueurs)
+- Weapons : `bf6_top_weapons_2025-10-24_XXXXXX.ndjson` (288 armes, 3 par joueur)
 
 ---
 
@@ -288,42 +303,39 @@ battlefield_meta_aggregator/
 
 📊 **Console BigQuery** : https://console.cloud.google.com/bigquery?project=battlefield-meta-aggregator
 
-### � Phase 2.5 : Fresh Data Extraction Pipeline (23 oct 2025)
-**Contexte** : L'extraction du 20 oct avait 74% d'échec (74 joueurs avec 0 armes)
+- [x] Installer DBT Core + dbt-bigquery
 
-**Problèmes résolus** :
-- [x] **Cloudflare bypass** : Mode headless bloqué → Navigateur visible requis
-- [x] **Délai insuffisant** : 15s → 20s pour chargement complet
-- [x] **Parser inadapté** : Regex → BeautifulSoup avec sélecteurs CSS
-- [x] **Structure HTML** : data-key numérique au lieu de player_id_*
+### ✅ Phase 2.5 : Extraction Production Pipeline **COMPLÈTE** (23-24 oct 2025)
 
-**Scripts créés** :
-- [x] `scripts/extract_bf6_leaderboard.py` - ✅ Extraction top 100 (97/100 joueurs)
-- [x] `scripts/extract_bf6_top_weapons_final.py` - ✅ Extraction weapons (prêt, non lancé)
-- [x] `scripts/extract_weapons_from_table.py` - ✅ Proof of concept (100% succès sur 3 joueurs)
-
-**Résultats Phase 1 (Leaderboard)** :
-- [x] 97 joueurs extraits (rangs 4-100)
-  - Rangs 1-3 manquants : Badges visuels 🏆🥈🥉 (structure différente)
-  - Handle (clé primaire), player_id, rank, kills
-- [x] Fichier : `bf6_leaderboard_2025-10-23_185748.ndjson`
-- [x] HTML debug sauvegardé (836 KB - confirmation bypass Cloudflare)
-- [x] Durée : 25 secondes
-
-**Prêt pour Phase 2 (Weapons)** :
-- [ ] Lancer `extract_bf6_top_weapons_final.py` (demain 24 oct)
-- [ ] Extraction top 3 armes × 97 joueurs
-- [ ] Durée estimée : 32-35 minutes
-- [ ] Taux de succès attendu : >90%
-- [ ] Fichier : `bf6_top_weapons_2025-10-23_HHMMSS.ndjson`
+**Objectif** : Pipeline robuste d'extraction en 2 étapes (Leaderboard + Weapons)
 
 **Architecture 2 fichiers** :
-- **Leaderboard** : 97 joueurs (handle, player_id, rank, kills)
-- **Weapons** : Top 3 armes par joueur (8 stats détaillées)
-- **Jointure** : Via `handle` (clé primaire commune)
+- **Étape 1** : Extraction leaderboard (97 joueurs) → Clé primaire `handle`
+- **Étape 2** : Extraction top 3 armes par joueur (288 armes) → 8 stats détaillées
+- **Jointure** : Via `handle` dans DBT (Silver layer)
 
-### ✅ Phase 3 : DBT Transformations **COMPLÈTE** (24 oct 2025)
-- [x] Installer DBT Core + dbt-bigquery
+**Scripts créés** :
+- [x] `scripts/extract_bf6_leaderboard.py` - ✅ Extraction top 100 
+- [x] `scripts/extract_bf6_top_weapons_final.py` - ✅ Extraction weapons avec stats complètes
+- [x] `scripts/load_to_bigquery.py` - ✅ Chargement automatique vers BigQuery
+
+**Résultats Production** :
+- [x] **97 joueurs** extraits (rangs 4-100, badges visuels 1-3 structure différente)
+- [x] **288 armes** extraites (3 par joueur)
+- [x] **8 stats par arme** : name, kills, damage, accuracy, headshot_pct, games, wins, kpm
+- [x] Fichiers NDJSON :
+  - `bf6_leaderboard_2025-10-23_185748.ndjson`
+  - `bf6_top_weapons_2025-10-24_XXXXXX.ndjson`
+- [x] Chargement BigQuery réussi (tables Bronze)
+- [x] Durée totale : ~35 minutes (25s leaderboard + 32-35 min weapons)
+- [x] Taux de succès : >95%
+
+**Problèmes résolus vs v1 (20 oct)** :
+- ✅ **Cloudflare bypass** : Mode headless bloqué → Navigateur visible requis
+- ✅ **Délai insuffisant** : 15s → 20s pour chargement complet
+- ✅ **Parser inadapté** : Regex → BeautifulSoup avec sélecteurs CSS précis
+- ✅ **Structure HTML** : data-key numérique au lieu de player_id_*
+- ✅ **Stats manquantes** : Ajout de 8 stats complètes par arme (vs 2 avant)
 - [x] Configuration profiles.yml (service-account)
 - [x] Modèles Bronze (sources.yml) - 2 tables
 - [x] Modèles Silver (nettoyage, normalisation) - 3 modèles
@@ -346,7 +358,10 @@ battlefield_meta_aggregator/
 
 ### ✅ Phase 4 : Streamlit Dashboard **COMPLÈTE** (25 oct 2025)
 - [x] Installation Streamlit + Plotly + pandas-gbq
-- [x] Structure dashboard (app.py + utils/)
+- [x] Structure multi-pages (3 pages)
+  - **Top 3 Weapons** (page principale)
+  - **All Weapons** (liste complète + filtres)
+  - **All Players** (top 100 + recherche)
 - [x] Connecteur BigQuery avec cache (10 min TTL)
 - [x] Visualisations Plotly :
   - Bar chart horizontal (Top 3 armes)
@@ -357,42 +372,182 @@ battlefield_meta_aggregator/
   - Total Players : 82
   - Avg Accuracy : 22.8%
   - Avg Headshot : 13.4%
-- [x] Fonctionnalités :
-  - Refresh button (clear cache)
-  - CSV export
-  - Table view détaillée
-  - Last extraction date
-- [x] Documentation (`dashboard/README.md`, `docs/STREAMLIT_GUIDE.md`)
+- [x] Fonctionnalités avancées :
+  - Theme toggle (Dark/Light mode)
+  - Filtres dynamiques (type, recherche texte)
+  - CSV export sur toutes les pages
+  - Tables scrollables avec bordures
+  - Hover effects et animations CSS
+- [x] Documentation complète
+  - `dashboard/README.md` (installation, architecture)
+  - `docs/STREAMLIT_GUIDE.md` (guide complet 500+ lignes)
+  - `ai/session_2025-10-25_phase4_dashboard.md` (session détaillée)
+  - `ai/PROJECT_STATUS.md` (état global)
+  - `ai/EXECUTIVE_SUMMARY.md` (résumé exécutif)
 
 **MVP Fonctionnel** :
-- 🌐 URL : http://localhost:8501
+- 🌐 **URL locale** : http://localhost:8501
+- 🌐 **URL réseau** : http://192.168.1.12:8501 (accessible sur WiFi local)
 - ⚡ Cache : 10 minutes (requêtes BigQuery)
-- 📊 3 charts + 4 metrics + 3 weapon cards
+- 📊 3 pages + 6 graphiques + 12 metrics
 - 📥 Export CSV disponible
+- 🎨 Design professionnel (Dark/Light themes)
 
-### 🔵 Phase 5 : Airflow Orchestration (En attente)
-- [ ] Tableau kills par arme
+### ✅ Phase 4.5 : Déploiement Cloud **EN COURS** (26 oct 2025)
 
-### 🔵 Phase 5 : Automation Hebdomadaire (1-2h)
-- [ ] Créer wrapper script Bash
-- [ ] Configuration cron/launchd (dimanches 2h)
-- [ ] Upload automatique vers MinIO
-- [ ] Notification par email (optionnel)
+**Objectif** : Rendre le dashboard accessible publiquement sur Internet
+
+**Étapes** :
+- [x] Documentation déploiement (`docs/STREAMLIT_CLOUD_DEPLOY.md`)
+- [ ] Modifier `dashboard/utils/bigquery.py` (gérer secrets Cloud)
+- [ ] Créer `.streamlit/secrets.toml` (local)
+- [ ] Tester en local avec secrets
+- [ ] Push sur GitHub
+- [ ] Déployer sur Streamlit Community Cloud
+- [ ] Configurer secrets BigQuery sur Cloud
+- [ ] Tester l'URL publique
+
+**Résultat attendu** :
+- 🌐 **URL publique** : `https://bf6-meta.streamlit.app` (ou similaire)
+- ✅ Gratuit (Streamlit Community Cloud Free Tier)
+- ✅ Auto-deploy depuis GitHub
+- ✅ SSL/HTTPS automatique
+
+**Guide complet** : `docs/STREAMLIT_CLOUD_DEPLOY.md`
+
+### 🔵 Phase 5 : Automation & Refresh (PLANIFIÉ)
+
+**Objectif** : Automatiser l'extraction et le rafraîchissement des données
+
+**2 Scénarios d'automatisation** :
+
+#### Scénario 1 : Refresh Manuel (Bouton Dashboard) 🔄
+**Use case** : Utilisateur clique sur "Refresh Data" dans le dashboard
+
+**Architecture** :
+```
+Dashboard Streamlit → Bouton "Refresh" → Trigger extraction
+                          ↓
+    Cloud Function/Cloud Run Job (Python script)
+                          ↓
+    Extract Tracker.gg → Upload BigQuery → DBT Run
+                          ↓
+    Invalidate Streamlit Cache → Dashboard mis à jour
+```
+
+**Implémentation** :
+- [ ] Créer Cloud Function GCP (`trigger_extraction`)
+- [ ] Exposer endpoint HTTP : `POST /refresh`
+- [ ] Ajouter bouton dans Streamlit :
+  ```python
+  if st.button("🔄 Refresh Latest Data"):
+      response = requests.post("https://us-central1-PROJECT.cloudfunctions.net/trigger_extraction")
+      if response.status_code == 200:
+          st.cache_data.clear()
+          st.success("✅ Data refreshed!")
+  ```
+- [ ] Wrapper script d'extraction (`scripts/full_pipeline.sh`)
+- [ ] Notification Slack/Email fin d'extraction
+
+**Durée estimée** : ~35 minutes par refresh (97 joueurs × 20s)
+
+**Coût estimé** : $0.40/refresh (Cloud Functions Free Tier : 2M invocations/mois)
 
 ---
 
-**Temps total estimé** : 8-12 heures (phases 1-5)  
-**Statut actuel** : Phase 4 (Streamlit MVP) validée à 100% ✅ | Phase 5 (Airflow) prochaine 🟡
+#### Scénario 2 : Refresh Automatique Hebdomadaire (Dimanches) 📅
+**Use case** : Extraction automatique tous les dimanches à 2h UTC
+
+**Architecture** :
+```
+Cloud Scheduler (cron) → Trigger Cloud Function
+                              ↓
+              Python extraction script
+                              ↓
+        Extract Tracker.gg (97 joueurs + weapons)
+                              ↓
+              Upload to BigQuery (Bronze)
+                              ↓
+                  DBT Run (Silver + Gold)
+                              ↓
+            Notification (Email/Slack)
+                              ↓
+        Streamlit cache auto-invalide (TTL)
+```
+
+**Implémentation** :
+- [ ] Créer Cloud Scheduler job
+  - Cron : `0 2 * * 0` (Dimanches 2h UTC)
+  - Target : Cloud Function `weekly_extraction`
+- [ ] Cloud Function execute :
+  ```bash
+  1. Run extract_bf6_leaderboard.py
+  2. Run extract_bf6_top_weapons_final.py
+  3. Upload NDJSON to BigQuery
+  4. Trigger DBT (dbt run && dbt test)
+  5. Send notification
+  ```
+- [ ] Monitoring :
+  - Cloud Logging (logs d'extraction)
+  - Alert si échec (>10% failures)
+  - Email hebdomadaire (résumé stats)
+
+**Durée totale** : ~40 minutes (extraction 35 min + DBT 5 min)
+
+**Coût estimé** : $0.50/semaine = $2/mois (Cloud Functions + Scheduler)
+
+---
+
+**Comparaison des 2 scénarios** :
+
+| Critère | Scénario 1 (Manuel) | Scénario 2 (Auto) |
+|---------|---------------------|-------------------|
+| **Fréquence** | À la demande | Hebdomadaire (fixe) |
+| **Contrôle** | Utilisateur décide | Automatique |
+| **Coût/mois** | Variable ($0-10) | Fixe ($2) |
+| **Latence** | Immédiate | Max 7 jours |
+| **Use case** | Événement spécial (patch) | Routine standard |
+
+**Recommandation** : **Implémenter les DEUX** 🎯
+- Scénario 2 (auto) pour routine hebdomadaire
+- Scénario 1 (manuel) pour patchs/événements urgents
+
+---
+
+**Tasks Phase 5** :
+- [ ] Setup GCP Cloud Functions
+- [ ] Créer script wrapper (`scripts/full_pipeline.sh`)
+- [ ] Configurer Cloud Scheduler
+- [ ] Ajouter bouton Refresh dans dashboard
+- [ ] Tests end-to-end (extraction → BigQuery → DBT → Dashboard)
+- [ ] Monitoring et alertes
+- [ ] Documentation (`docs/AUTOMATION_GUIDE.md`)
+
+**Durée estimée** : 1-2 jours (8-16h)
+
+**Prérequis** : Phase 4.5 complète (dashboard déployé sur Cloud)
+
+---
+
+**Temps total estimé** : 10-14 heures (phases 1-5)  
+**Statut actuel** : Phase 4 (Dashboard MVP) complète ✅ | Phase 4.5 (Cloud Deploy) en cours 🟡 | Phase 5 (Automation) planifiée �
 
 **📈 Métriques actuelles** :
 - ✅ 97 joueurs extraits (top 100 leaderboard)
 - ✅ 288 armes détaillées (3 par joueur)
 - ✅ 8 tables BigQuery (Bronze/Silver/Gold)
 - ✅ 47/47 tests de qualité réussis
-- ✅ Dashboard Streamlit fonctionnel (http://localhost:8501)
-- ✅ 3 visualisations Plotly + 4 metrics interactives
+- ✅ Dashboard Streamlit fonctionnel (3 pages interactives)
+- ✅ 6 visualisations Plotly + 12 metrics
+- ✅ Dark/Light themes + filtres dynamiques
 - ✅ Pipeline complet end-to-end (Tracker.gg → MinIO → BigQuery → DBT → Streamlit)
-- ✅ Coût BigQuery : 0€ (Free Tier)
+- ✅ Coût total : $0/mois (Free Tiers)
+- 🟡 Déploiement cloud en cours (URL publique à venir)
+
+**📊 Top 3 Armes (dernière extraction)** :
+1. 🥇 **M4A1** (AR) : 95,881 kills | 65 joueurs | 23.8% accuracy
+2. 🥈 **SG 553R** (AR) : 66,392 kills | 48 joueurs | 21.5% accuracy
+3. 🥉 **M433** (GL) : 53,780 kills | 42 joueurs | 38.9% accuracy
 
 ---
 
@@ -505,16 +660,24 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 **🎯 NEXT STEP** : Phase 5 - Airflow Orchestration (automatisation hebdomadaire)
 
-**📚 Documentation complète** :
+**� PROJECT OVERVIEW** : `PROJECT_OVERVIEW.md` - Vue d'ensemble complète pour entretiens (métriques, architecture, compétences démontrées)
+
+** Documentation complète** :
+- 📊 **Project Overview** : `PROJECT_OVERVIEW.md` (métriques détaillées, 5,761 lignes code, 60-80h dev)
 - 🔍 **BigQuery** : `docs/BIGQUERY_GUIDE.md` (setup, queries, troubleshooting)
 - 🏗️ **DBT** : `dbt/README.md` (modèles, transformations, tests)
 - 📊 **Streamlit** : `docs/STREAMLIT_GUIDE.md` (dashboard, cache, visualisations)
+- ☁️ **Déploiement Cloud** : `docs/STREAMLIT_CLOUD_DEPLOY.md` (guide déploiement Streamlit Cloud)
 - 📋 **Phase 3** : `docs/PHASE_3_COMPLETE.md` (récapitulatif DBT)
 - 🧠 **CLI/Git/Python/SQL** : `docs/CLI_GIT_GUIDE.md` (moyens mnémotechniques)
-- � **Collaboration** : `ai/notes.md` (historique sessions + décisions)
+- 📝 **Collaboration** : `ai/notes.md` (historique sessions + décisions)
 - 🎓 **DBT & BigQuery** : `docs/DBT_BIGQUERY_EXPLAINED.md` (guide débutant complet)
 - 🎮 **Dashboard** : `dashboard/README.md` (installation, fonctionnalités)
+- 📈 **État du projet** : `ai/PROJECT_STATUS.md` (vue d'ensemble complète)
+- 🚀 **Prochaines étapes** : `NEXT_STEPS.md` (Phase 5 détaillée, roadmap)
+- 📊 **Résumé exécutif** : `ai/EXECUTIVE_SUMMARY.md` (highlights Phase 4)
+- 📝 **Session 25 oct** : `ai/session_2025-10-25_phase4_dashboard.md` (détails complets)
 
 ---
 
-**Dernière mise à jour** : 25 octobre 2025 - Phase 4 complète (Streamlit Dashboard MVP)
+**Dernière mise à jour** : 26 octobre 2025 - Phase 4.5 en cours (Déploiement Cloud)
