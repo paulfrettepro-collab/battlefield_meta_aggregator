@@ -201,7 +201,7 @@ def main():
         
         st.divider()
         
-        st.image("https://via.placeholder.com/300x100/FF6B6B/FFFFFF?text=BF6+Meta", use_container_width=True)
+        st.image("https://via.placeholder.com/300x100/FF6B6B/FFFFFF?text=BF6+Meta", use_column_width=True)
         
         # Data refresh button
         if st.button("🔄 Refresh Data", use_container_width=True):
