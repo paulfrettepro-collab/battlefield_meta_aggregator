@@ -3,12 +3,16 @@ BigQuery Connector for BF6 Meta Dashboard
 
 This module provides cached functions to query BigQuery tables
 and retrieve data for the Streamlit dashboard.
+
+Supports both local development (JSON credentials) and Streamlit Cloud (secrets).
 """
 
 import streamlit as st
 from google.cloud import bigquery
+from google.oauth2 import service_account
 import pandas as pd
 from pathlib import Path
+import os
 
 
 @st.cache_resource
@@ -16,17 +20,33 @@ def get_bigquery_client():
     """
     Create and cache a BigQuery client using service account credentials.
     
+    Detects environment automatically:
+    - Streamlit Cloud: Uses st.secrets
+    - Local development: Uses JSON file from config/
+    
     Returns:
         bigquery.Client: Authenticated BigQuery client
     """
-    # Path to credentials relative to project root
-    credentials_path = Path(__file__).parent.parent.parent / "config" / "bigquery-key.json"
+    # Check if running on Streamlit Cloud (secrets available)
+    if "gcp_service_account" in st.secrets:
+        # Streamlit Cloud: use secrets.toml
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"]
+        )
+        project_id = st.secrets["gcp_service_account"]["project_id"]
+        return bigquery.Client(credentials=credentials, project=project_id)
     
-    if not credentials_path.exists():
-        st.error(f"❌ BigQuery credentials not found at: {credentials_path}")
-        st.stop()
-    
-    return bigquery.Client.from_service_account_json(str(credentials_path))
+    else:
+        # Local development: use JSON file
+        credentials_path = Path(__file__).parent.parent.parent / "config" / "bigquery-key.json"
+        
+        if not credentials_path.exists():
+            st.error(f"❌ BigQuery credentials not found at: {credentials_path}")
+            st.info("💡 For local dev: place bigquery-key.json in config/")
+            st.info("💡 For Streamlit Cloud: configure secrets in dashboard settings")
+            st.stop()
+        
+        return bigquery.Client.from_service_account_json(str(credentials_path))
 
 
 @st.cache_data(ttl=600)  # Cache for 10 minutes
