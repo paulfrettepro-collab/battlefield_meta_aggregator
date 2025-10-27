@@ -1,14 +1,21 @@
 """
-Battlefield Meta Aggregator - Streamlit Cloud Entry Point
+Streamlit Cloud Entry Point
 
 This file serves as the entry point for Streamlit Cloud deployment.
-It loads the main dashboard from dashboard/app.py
-
-For local development, you can run either:
-    streamlit run streamlit_app.py  (root)
-    streamlit run dashboard/app.py  (dashboard folder)
+It executes the main dashboard app located in the dashboard/ directory.
 """
 
-# Execute the dashboard app
-exec(open("dashboard/app.py").read())
+import os
+import sys
+from pathlib import Path
+
+# Add dashboard directory to Python path so imports work correctly
+dashboard_dir = Path(__file__).parent / "dashboard"
+sys.path.insert(0, str(dashboard_dir))
+
+# Change to dashboard directory so relative imports work
+os.chdir(dashboard_dir)
+
+# Execute the main dashboard app
+exec(open("app.py").read())
 
