@@ -27,7 +27,7 @@
 **📊 DASHBOARD** : 
 - 🏠 Local : http://localhost:8501
 - 🌐 Réseau : http://192.168.1.12:8501 (accessible WiFi local)
-- ☁️ Cloud : En cours de déploiement (Phase 4.5)
+- ☁️ **Cloud : https://battlefieldmetaaggregator.streamlit.app** ✅ **LIVE**
 ---
 
 ## 🎯 Ce Qu'on Extrait
