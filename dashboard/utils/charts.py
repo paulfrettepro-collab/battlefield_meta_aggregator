@@ -25,7 +25,7 @@ def plot_top_weapons_bar(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     numeric_cols = ['total_kills', 'player_count', 'avg_accuracy']
     for col in numeric_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = df[col].astype(float)
     
     # Define color palette
     colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
@@ -147,7 +147,7 @@ def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     numeric_cols = ['total_kills', 'player_count', 'avg_accuracy']
     for col in numeric_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = df[col].astype(float)
     
     # Theme colors
     if theme == "dark":
