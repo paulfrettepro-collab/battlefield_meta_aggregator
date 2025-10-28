@@ -7,7 +7,7 @@
 [![BigQuery](https://img.shields.io/badge/BigQuery-Active-blue.svg)](https://cloud.google.com/bigquery)
 [![DBT](https://img.shields.io/badge/DBT-1.11.0-orange.svg)](https://www.getdbt.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
-[![Status](https://img.shields.io/badge/Status-Phase%204%20Complete-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Phase%205%20In%20Progress-yellow.svg)]()
 
 **Projet personnel d'ELT & Data Engineering — par Paul Fretté**
 
@@ -18,16 +18,18 @@
 **Chaque semaine**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leurs **top 3 armes** (nom + kills), calculer les **armes les plus populaires** et afficher les tendances dans une petite UI.
 
 **Pipeline** : `Selenium` → `BigQuery (Bronze)` → `DBT (Silver/Gold)` → `Streamlit`  
-**Orchestration** : Apache Airflow (exécution hebdomadaire automatisée - Phase 5)
+**Orchestration** : Apache Airflow (exécution hebdomadaire automatisée - Phase 5 en cours)
 
-**🎉 Phase 4 (Streamlit Dashboard) COMPLÈTE** : Dashboard MVP multi-pages | 3 pages interactives | Dark/Light themes | Filtres dynamiques
+**🎉 Phase 4.5 (Cloud Deploy) COMPLÈTE** : Dashboard public accessible 24/7 | Auto-deploy GitHub | SSL/HTTPS
+
+**🔄 Phase 5 (Airflow + Optimization) EN COURS** : DAG créé | Extraction parallèle 74% plus rapide
 
 **🏆 RÉSULTAT** : M4A1 (95,881 kills, 65 joueurs), SG 553R (66,392 kills, 48 joueurs), M433 (53,780 kills, 42 joueurs)
 
 **📊 DASHBOARD** : 
+- ☁️ **Cloud : https://battlefieldmetaaggregator.streamlit.app** ✅ **LIVE** (accessible mondialement)
 - 🏠 Local : http://localhost:8501
 - 🌐 Réseau : http://192.168.1.12:8501 (accessible WiFi local)
-- ☁️ **Cloud : https://battlefieldmetaaggregator.streamlit.app** ✅ **LIVE**
 ---
 
 ## 🎯 Ce Qu'on Extrait
@@ -393,156 +395,131 @@ battlefield_meta_aggregator/
 - 📥 Export CSV disponible
 - 🎨 Design professionnel (Dark/Light themes)
 
-### ✅ Phase 4.5 : Déploiement Cloud **EN COURS** (26 oct 2025)
+### ✅ Phase 4.5 : Déploiement Cloud **COMPLÈTE** (27 oct 2025)
 
-**Objectif** : Rendre le dashboard accessible publiquement sur Internet
+**Objectif** : Rendre le dashboard accessible publiquement sur Internet ✅
 
 **Étapes** :
 - [x] Documentation déploiement (`docs/STREAMLIT_CLOUD_DEPLOY.md`)
-- [ ] Modifier `dashboard/utils/bigquery.py` (gérer secrets Cloud)
-- [ ] Créer `.streamlit/secrets.toml` (local)
-- [ ] Tester en local avec secrets
-- [ ] Push sur GitHub
-- [ ] Déployer sur Streamlit Community Cloud
-- [ ] Configurer secrets BigQuery sur Cloud
-- [ ] Tester l'URL publique
+- [x] Modifier `dashboard/utils/bigquery.py` (gestion secrets Cloud)
+- [x] Créer `.streamlit/secrets.toml` (local)
+- [x] Tests en local avec secrets
+- [x] Push sur GitHub
+- [x] Déploiement sur Streamlit Community Cloud
+- [x] Configuration secrets BigQuery sur Cloud
+- [x] Tests URL publique validés
 
-**Résultat attendu** :
-- 🌐 **URL publique** : `https://bf6-meta.streamlit.app` (ou similaire)
+**Résultat** :
+- 🌐 **URL publique** : https://battlefieldmetaaggregator.streamlit.app ✅ **LIVE**
 - ✅ Gratuit (Streamlit Community Cloud Free Tier)
-- ✅ Auto-deploy depuis GitHub
+- ✅ Auto-deploy depuis GitHub (push main → redéploiement automatique)
 - ✅ SSL/HTTPS automatique
+- ✅ Dashboard accessible mondialement
+
+**Problèmes résolus** :
+- ✅ Dépendances requirements.txt (langchain conflicts)
+- ✅ Streamlit version 1.28.2 → 1.39.0
+- ✅ st.image() parameter `use_container_width` → `use_column_width`
+- ✅ Import paths (streamlit_app.py → dashboard/app.py)
 
 **Guide complet** : `docs/STREAMLIT_CLOUD_DEPLOY.md`
 
-### 🔵 Phase 5 : Automation & Refresh (PLANIFIÉ)
+### 🔵 Phase 5 : Airflow Orchestration & Extraction Optimization **EN COURS** (28 oct 2025)
 
-**Objectif** : Automatiser l'extraction et le rafraîchissement des données
+**Objectif** : Automatiser l'extraction hebdomadaire + optimiser le temps d'extraction
 
-**2 Scénarios d'automatisation** :
+#### 5.1 Airflow DAG ✅ Créé
+- [x] DAG `bf6_weekly_extraction` avec 6 tâches séquentielles :
+  1. `extract_leaderboard` → Extraction top 100 joueurs
+  2. `extract_weapons` → Extraction armes par joueur
+  3. `load_to_bigquery` → Chargement dans BigQuery
+  4. `dbt_run_silver` → Transformations Silver
+  5. `dbt_run_gold` → Transformations Gold
+  6. `send_notification` → Notification fin de pipeline
+- [x] Schedule : `0 2 * * 0` (Dimanches 2h UTC)
+- [x] Documentation : `airflow/README.md` (guide installation 15 min)
+- [ ] Installation Airflow (en attente)
+- [ ] Tests DAG end-to-end
 
-#### Scénario 1 : Refresh Manuel (Bouton Dashboard) 🔄
-**Use case** : Utilisateur clique sur "Refresh Data" dans le dashboard
-
-**Architecture** :
+**Architecture Airflow** :
 ```
-Dashboard Streamlit → Bouton "Refresh" → Trigger extraction
-                          ↓
-    Cloud Function/Cloud Run Job (Python script)
-                          ↓
-    Extract Tracker.gg → Upload BigQuery → DBT Run
-                          ↓
-    Invalidate Streamlit Cache → Dashboard mis à jour
+Apache Airflow 2.10.3 (Standalone mode)
+├── Metadata DB: SQLite (local ~/airflow/airflow.db)
+├── Executor: SequentialExecutor (MVP, 1 tâche à la fois)
+├── DAGs: airflow/dags/bf6_weekly_extraction.py
+└── Logs: ~/airflow/logs/
 ```
+
+#### 5.2 Extraction Optimization ✅ Implémentée
+
+**Problème identifié** :
+- Durée actuelle : ~32 minutes (97 joueurs × 20s)
+- Bottleneck : `time.sleep(20)` fixe pour bypass Cloudflare
+
+**Solutions analysées** :
+1. **Parallel extraction** (5 workers) → 6 min (81% gain) ✅
+2. **Dynamic wait** (WebDriverWait) → 24 min (25% gain) ✅
+3. **Incremental cache** → 5 min après 1ère run (84% gain)
+4. **Headless optimized** → 29 min (10% gain)
+
+**Combo recommandé : Parallel + Dynamic wait → 4-6 min (85-87% gain)** ✅
 
 **Implémentation** :
-- [ ] Créer Cloud Function GCP (`trigger_extraction`)
-- [ ] Exposer endpoint HTTP : `POST /refresh`
-- [ ] Ajouter bouton dans Streamlit :
-  ```python
-  if st.button("🔄 Refresh Latest Data"):
-      response = requests.post("https://us-central1-PROJECT.cloudfunctions.net/trigger_extraction")
-      if response.status_code == 200:
-          st.cache_data.clear()
-          st.success("✅ Data refreshed!")
-  ```
-- [ ] Wrapper script d'extraction (`scripts/full_pipeline.sh`)
-- [ ] Notification Slack/Email fin d'extraction
+- [x] Script créé : `scripts/extract_bf6_top_weapons_parallel.py` (520 lignes)
+- [x] Technologie : `ThreadPoolExecutor` + thread-local driver pool
+- [x] Dynamic wait : `WebDriverWait` (détection table chargée)
+- [x] CLI : `--workers N` (default 5), `--limit N` (pour tests)
+- [x] Test 10 joueurs : 51.8s vs 200s séquentiel (**74% faster**) ✅
+- [ ] Test complet 97 joueurs (5-6 min attendu)
+- [ ] Intégration dans DAG Airflow
 
-**Durée estimée** : ~35 minutes par refresh (97 joueurs × 20s)
+**Résultats test (28 oct 2025)** :
+```bash
+python3 scripts/extract_bf6_top_weapons_parallel.py --limit 10 --workers 3
 
-**Coût estimé** : $0.40/refresh (Cloud Functions Free Tier : 2M invocations/mois)
-
----
-
-#### Scénario 2 : Refresh Automatique Hebdomadaire (Dimanches) 📅
-**Use case** : Extraction automatique tous les dimanches à 2h UTC
-
-**Architecture** :
-```
-Cloud Scheduler (cron) → Trigger Cloud Function
-                              ↓
-              Python extraction script
-                              ↓
-        Extract Tracker.gg (97 joueurs + weapons)
-                              ↓
-              Upload to BigQuery (Bronze)
-                              ↓
-                  DBT Run (Silver + Gold)
-                              ↓
-            Notification (Email/Slack)
-                              ↓
-        Streamlit cache auto-invalide (TTL)
+📊 RÉSULTATS :
+⏱️  Durée : 51.8 secondes (vs 200s séquentiel)
+✅ Succès : 10/10 joueurs (100%)
+⚡ Vitesse : 0.19 joueurs/s
+🎯 Gain : 74% plus rapide
 ```
 
-**Implémentation** :
-- [ ] Créer Cloud Scheduler job
-  - Cron : `0 2 * * 0` (Dimanches 2h UTC)
-  - Target : Cloud Function `weekly_extraction`
-- [ ] Cloud Function execute :
-  ```bash
-  1. Run extract_bf6_leaderboard.py
-  2. Run extract_bf6_top_weapons_final.py
-  3. Upload NDJSON to BigQuery
-  4. Trigger DBT (dbt run && dbt test)
-  5. Send notification
-  ```
-- [ ] Monitoring :
-  - Cloud Logging (logs d'extraction)
-  - Alert si échec (>10% failures)
-  - Email hebdomadaire (résumé stats)
+**Documentation** : `docs/EXTRACTION_OPTIMIZATION.md` (450+ lignes d'analyse)
 
-**Durée totale** : ~40 minutes (extraction 35 min + DBT 5 min)
+#### 5.3 Prochaines étapes
+- [ ] Installation Airflow standalone (15 min)
+- [ ] Test DAG dans UI Airflow
+- [ ] Extraction complète 97 joueurs (validation 81-87% gain)
+- [ ] Mise à jour task `extract_weapons` dans DAG (utiliser script parallèle)
+- [ ] Intégration bouton "Refresh" dans dashboard → trigger DAG Airflow
 
-**Coût estimé** : $0.50/semaine = $2/mois (Cloud Functions + Scheduler)
+**Durée estimée Phase 5** : 1-2 jours (installation + tests + intégration)
+
+**Bénéfices attendus** :
+- ⏰ Extraction : 32 min → 5-6 min (85% gain)
+- 🔄 Automatisation : Exécution hebdomadaire sans intervention
+- 📊 Pipeline complet orchestré : Extract → Load → Transform → Notify
+- 🚨 Monitoring : Logs centralisés + retry automatique sur échec
 
 ---
 
-**Comparaison des 2 scénarios** :
-
-| Critère | Scénario 1 (Manuel) | Scénario 2 (Auto) |
-|---------|---------------------|-------------------|
-| **Fréquence** | À la demande | Hebdomadaire (fixe) |
-| **Contrôle** | Utilisateur décide | Automatique |
-| **Coût/mois** | Variable ($0-10) | Fixe ($2) |
-| **Latence** | Immédiate | Max 7 jours |
-| **Use case** | Événement spécial (patch) | Routine standard |
-
-**Recommandation** : **Implémenter les DEUX** 🎯
-- Scénario 2 (auto) pour routine hebdomadaire
-- Scénario 1 (manuel) pour patchs/événements urgents
-
----
-
-**Tasks Phase 5** :
-- [ ] Setup GCP Cloud Functions
-- [ ] Créer script wrapper (`scripts/full_pipeline.sh`)
-- [ ] Configurer Cloud Scheduler
-- [ ] Ajouter bouton Refresh dans dashboard
-- [ ] Tests end-to-end (extraction → BigQuery → DBT → Dashboard)
-- [ ] Monitoring et alertes
-- [ ] Documentation (`docs/AUTOMATION_GUIDE.md`)
-
-**Durée estimée** : 1-2 jours (8-16h)
-
-**Prérequis** : Phase 4.5 complète (dashboard déployé sur Cloud)
-
----
-
-**Temps total estimé** : 10-14 heures (phases 1-5)  
-**Statut actuel** : Phase 4 (Dashboard MVP) complète ✅ | Phase 4.5 (Cloud Deploy) en cours 🟡 | Phase 5 (Automation) planifiée �
+**Temps total estimé** : 12-16 heures (phases 1-5)  
+**Statut actuel** : Phase 4.5 (Cloud Deploy) complète ✅ | Phase 5 (Airflow + Optimization) en cours 🟡
 
 **📈 Métriques actuelles** :
 - ✅ 97 joueurs extraits (top 100 leaderboard)
 - ✅ 288 armes détaillées (3 par joueur)
 - ✅ 8 tables BigQuery (Bronze/Silver/Gold)
 - ✅ 47/47 tests de qualité réussis
-- ✅ Dashboard Streamlit fonctionnel (3 pages interactives)
+- ✅ Dashboard Streamlit déployé publiquement (https://battlefieldmetaaggregator.streamlit.app)
 - ✅ 6 visualisations Plotly + 12 metrics
 - ✅ Dark/Light themes + filtres dynamiques
-- ✅ Pipeline complet end-to-end (Tracker.gg → MinIO → BigQuery → DBT → Streamlit)
+- ✅ Pipeline complet end-to-end (Tracker.gg → BigQuery → DBT → Streamlit Cloud)
+- ✅ Airflow DAG créé (6 tâches orchestrées)
+- ✅ Extraction parallèle : 74% plus rapide validé (test 10 joueurs)
 - ✅ Coût total : $0/mois (Free Tiers)
-- 🟡 Déploiement cloud en cours (URL publique à venir)
+- 🟡 Airflow installation en attente
+- 🟡 Test extraction complète 97 joueurs (5-6 min attendu)
 
 **📊 Top 3 Armes (dernière extraction)** :
 1. 🥇 **M4A1** (AR) : 95,881 kills | 65 joueurs | 23.8% accuracy
