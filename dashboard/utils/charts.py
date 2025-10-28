@@ -135,6 +135,11 @@ def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     Returns:
         plotly.graph_objects.Figure: Configured scatter plot
     """
+    # Convert nullable Int64 to float for Plotly compatibility
+    df = df.copy()
+    if 'player_count' in df.columns:
+        df['player_count'] = df['player_count'].astype(float)
+    
     # Theme colors
     if theme == "dark":
         bg_color = 'rgba(14, 17, 23, 0)'
