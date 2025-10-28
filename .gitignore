@@ -30,6 +30,7 @@ env/
 ENV/
 .venv/
 virtualenv/
+airflow_venv/       # Environnement Airflow dédié
 
 # Fichiers compilés Python
 __pycache__/        # Cache des modules Python
