@@ -20,6 +20,13 @@ def plot_top_weapons_bar(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     Returns:
         plotly.graph_objects.Figure: Configured bar chart
     """
+    # Convert nullable Int64 to float for Plotly compatibility
+    df = df.copy()
+    numeric_cols = ['total_kills', 'player_count', 'avg_accuracy']
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    
     # Define color palette
     colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
     
@@ -137,8 +144,10 @@ def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
     """
     # Convert nullable Int64 to float for Plotly compatibility
     df = df.copy()
-    if 'player_count' in df.columns:
-        df['player_count'] = df['player_count'].astype(float)
+    numeric_cols = ['total_kills', 'player_count', 'avg_accuracy']
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
     
     # Theme colors
     if theme == "dark":
