@@ -7,7 +7,7 @@ sources:
     schema: bf6_meta
     
     tables:
-      - name: bf6_leaderboard_raw
+      - name: bronze_leaderboard
         description: "Top 100 joueurs du leaderboard (rangs 4-100)"
         columns:
           - name: handle
@@ -37,15 +37,15 @@ sources:
             tests:
               - not_null
       
-      - name: bf6_top_weapons_raw
+      - name: bronze_weapons
         description: "Top 3 armes par joueur (dénormalisé)"
         columns:
-          - name: handle
+          - name: player_handle
             description: "Pseudo du joueur (FK → leaderboard)"
             tests:
               - not_null
               - relationships:
-                  to: source('bronze', 'bf6_leaderboard_raw')
+                  to: source('bronze', 'bronze_leaderboard')
                   field: handle
           
           - name: weapon_name
@@ -58,7 +58,7 @@ sources:
             tests:
               - not_null
           
-          - name: kills
+          - name: weapon_kills
             description: "Kills avec cette arme"
             tests:
               - not_null

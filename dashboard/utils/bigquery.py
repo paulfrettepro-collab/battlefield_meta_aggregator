@@ -52,11 +52,11 @@ def get_bigquery_client():
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def load_top_weapons() -> pd.DataFrame:
     """
-    Load top 3 weapons from the Gold layer.
+    Load top 10 weapons from the Gold layer.
     
     Returns:
-        pd.DataFrame: Top 3 weapons with stats (weapon_name, weapon_type, 
-                     total_kills, avg_accuracy, avg_headshot_pct, nb_players_using)
+        pd.DataFrame: Top 10 weapons with stats (weapon_name, 
+                     total_kills, avg_accuracy, nb_players_using)
     """
     client = get_bigquery_client()
     
@@ -64,13 +64,10 @@ def load_top_weapons() -> pd.DataFrame:
         SELECT 
             global_rank,
             weapon_name,
-            weapon_type,
             total_kills,
             nb_players_using,
             avg_kills_per_player,
             avg_accuracy,
-            avg_headshot_pct,
-            total_damage_dealt,
             generated_at
         FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_top_weapons_global`
         ORDER BY global_rank
@@ -80,40 +77,42 @@ def load_top_weapons() -> pd.DataFrame:
     
     # Rename columns to match dashboard expectations
     df = df.rename(columns={
-        'nb_players_using': 'player_count',
-        'total_damage_dealt': 'avg_damage'
+        'nb_players_using': 'player_count'
     })
     
     return df
 
 
 @st.cache_data(ttl=600)
-def load_weapon_types_stats() -> pd.DataFrame:
+def load_all_weapons() -> pd.DataFrame:
     """
-    Load weapon type aggregated statistics from Gold layer.
+    Load top 20 weapons by kills from Gold layer.
     
     Returns:
-        pd.DataFrame: Stats by weapon type
+        pd.DataFrame: Top 20 weapons with stats
     """
     client = get_bigquery_client()
     
-    # Use aggregation on silver_weapons since we don't have a dedicated weapon_type table
     query = """
         SELECT 
-            weapon_type,
-            COUNT(DISTINCT weapon_name) AS total_weapons,
-            SUM(weapon_kills) AS total_kills,
-            ROUND(AVG(accuracy), 3) AS avg_accuracy,
-            ROUND(AVG(headshot_pct), 3) AS avg_headshot_pct,
-            SUM(total_damage) AS avg_damage
-        FROM `battlefield-meta-aggregator.bf6_meta_silver.silver_weapons`
-        WHERE weapon_type != 'UNKNOWN'
-        GROUP BY weapon_type
-        ORDER BY total_kills DESC
-        LIMIT 10
+            weapon_rank,
+            weapon_name,
+            total_kills,
+            nb_players_using,
+            avg_kills_per_player,
+            avg_accuracy,
+            generated_at
+        FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_top_weapons_by_type`
+        ORDER BY weapon_rank
     """
     
     df = client.query(query).to_dataframe()
+    
+    # Rename columns to match dashboard expectations
+    df = df.rename(columns={
+        'nb_players_using': 'player_count'
+    })
+    
     return df
 
 
@@ -132,11 +131,15 @@ def load_player_rankings() -> pd.DataFrame:
             player_handle AS handle,
             player_rank,
             player_total_kills AS total_kills,
+            player_matches,
+            player_location,
             main_weapon,
-            main_weapon_type,
             main_weapon_kills,
-            avg_accuracy_top3 AS avg_accuracy,
-            avg_headshot_pct_top3 AS avg_headshot_pct
+            main_weapon_accuracy,
+            secondary_weapon,
+            secondary_weapon_kills,
+            tertiary_weapon,
+            tertiary_weapon_kills
         FROM `battlefield-meta-aggregator.bf6_meta_gold.gold_player_rankings`
         ORDER BY player_total_kills DESC
     """
@@ -161,13 +164,10 @@ def load_player_weapons(handle: str) -> pd.DataFrame:
     query = f"""
         SELECT 
             weapon_name,
-            weapon_type,
             weapon_kills AS kills,
-            accuracy,
-            headshot_pct,
-            total_damage AS damage,
-            time_played,
-            weapon_rank_for_player
+            weapon_accuracy AS accuracy,
+            weapon_rank_for_player,
+            pct_kills_with_weapon
         FROM `battlefield-meta-aggregator.bf6_meta_silver.silver_player_weapons`
         WHERE player_handle = '{handle}'
         ORDER BY weapon_kills DESC
@@ -189,7 +189,7 @@ def get_last_extraction_date() -> str:
     
     query = """
         SELECT MAX(extraction_date) AS last_date
-        FROM `battlefield-meta-aggregator.bf6_meta.bf6_leaderboard_raw`
+        FROM `battlefield-meta-aggregator.bf6_meta.bronze_leaderboard`
     """
     
     result = client.query(query).to_dataframe()

@@ -7,40 +7,26 @@
 
 WITH latest_extraction AS (
     SELECT MAX(DATE(extraction_date)) AS max_date
-    FROM {{ source('bronze', 'bf6_top_weapons_raw') }}
+    FROM {{ source('bronze', 'bronze_weapons') }}
 ),
 
 cleaned_weapons AS (
     SELECT
         -- Identifiants joueur
-        TRIM(handle) AS player_handle,
+        TRIM(player_handle) AS player_handle,
         TRIM(player_id) AS player_id,
+        CAST(player_rank AS INT64) AS player_rank,
+        CAST(player_kills AS INT64) AS player_total_kills,
         
         -- Arme
         UPPER(TRIM(weapon_name)) AS weapon_name,
-        UPPER(TRIM(COALESCE(weapon_type, 'Unknown'))) AS weapon_type,
         
-        -- Métriques principales (MVP)
-        CAST(kills AS INT64) AS weapon_kills,
+        -- Métriques principales
+        CAST(weapon_kills AS INT64) AS weapon_kills,
         CAST(weapon_rank AS INT64) AS weapon_rank_for_player,
         
-        -- Métriques secondaires (disponibles mais pas encore utilisées dans MVP)
-        CAST(time_played AS STRING) AS time_played,
-        CAST(damage AS INT64) AS total_damage,
-        
-        -- Conversion accuracy "23.5%" → 0.235 (FLOAT64)
-        CASE 
-            WHEN accuracy IS NOT NULL AND accuracy != ''
-            THEN CAST(REPLACE(accuracy, '%', '') AS FLOAT64) / 100
-            ELSE NULL
-        END AS accuracy,
-        
-        -- Conversion headshot_pct "18.2%" → 0.182 (FLOAT64)
-        CASE 
-            WHEN headshot_pct IS NOT NULL AND headshot_pct != ''
-            THEN CAST(REPLACE(headshot_pct, '%', '') AS FLOAT64) / 100
-            ELSE NULL
-        END AS headshot_pct,
+        -- Accuracy (déjà en FLOAT dans bronze)
+        CAST(weapon_accuracy AS FLOAT64) / 100 AS accuracy,
         
         -- Métadonnées
         CAST(extraction_date AS TIMESTAMP) AS extracted_at,
@@ -48,11 +34,11 @@ cleaned_weapons AS (
         
         -- Flags de qualité
         CASE 
-            WHEN kills > 0 THEN TRUE 
+            WHEN weapon_kills > 0 THEN TRUE 
             ELSE FALSE 
         END AS is_valid_weapon
         
-    FROM {{ source('bronze', 'bf6_top_weapons_raw') }}
+    FROM {{ source('bronze', 'bronze_weapons') }}
     WHERE DATE(extraction_date) = (SELECT max_date FROM latest_extraction)
 )
 

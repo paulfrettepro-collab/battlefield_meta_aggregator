@@ -7,7 +7,7 @@
 
 WITH latest_extraction AS (
     SELECT MAX(DATE(extraction_date)) AS max_date
-    FROM {{ source('bronze', 'bf6_leaderboard_raw') }}
+    FROM {{ source('bronze', 'bronze_leaderboard') }}
 ),
 
 cleaned_players AS (
@@ -19,11 +19,14 @@ cleaned_players AS (
         -- Métriques
         CAST(rank AS INT64) AS player_rank,
         CAST(kills AS INT64) AS total_kills,
+        CAST(matches_played AS INT64) AS matches_played,
+        
+        -- Localisation (nouveau champ)
+        TRIM(location) AS location,
         
         -- Métadonnées
         CAST(extraction_date AS TIMESTAMP) AS extracted_at,
         DATE(extraction_date) AS extraction_date,
-        url_source,
         
         -- Flags de qualité
         CASE 
@@ -39,7 +42,7 @@ cleaned_players AS (
             ELSE 'Other'
         END AS tier
         
-    FROM {{ source('bronze', 'bf6_leaderboard_raw') }}
+    FROM {{ source('bronze', 'bronze_leaderboard') }}
     WHERE DATE(extraction_date) = (SELECT max_date FROM latest_extraction)
 )
 

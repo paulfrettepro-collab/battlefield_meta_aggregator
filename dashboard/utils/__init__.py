@@ -3,7 +3,7 @@
 from .bigquery import (
     get_bigquery_client,
     load_top_weapons,
-    load_weapon_types_stats,
+    load_all_weapons,
     load_player_rankings,
     load_player_weapons,
     get_last_extraction_date,
@@ -23,7 +23,7 @@ __all__ = [
     # BigQuery functions
     'get_bigquery_client',
     'load_top_weapons',
-    'load_weapon_types_stats',
+    'load_all_weapons',
     'load_player_rankings',
     'load_player_weapons',
     'get_last_extraction_date',

@@ -11,17 +11,15 @@ SELECT
     p.player_id,
     p.player_rank,
     p.total_kills AS player_total_kills,
+    p.matches_played AS player_matches,
+    p.location AS player_location,
     p.tier AS player_tier,
     
     -- Arme
     w.weapon_name,
-    w.weapon_type,
     w.weapon_kills,
     w.weapon_rank_for_player,
-    w.total_damage,
-    w.accuracy,
-    w.headshot_pct,
-    w.time_played,
+    w.accuracy AS weapon_accuracy,
     
     -- Métriques calculées
     ROUND(w.weapon_kills * 100.0 / p.total_kills, 2) AS pct_kills_with_weapon,

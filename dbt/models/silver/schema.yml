@@ -54,11 +54,6 @@ models:
         tests:
           - not_null
       
-      - name: weapon_type
-        description: "Type d'arme (SMG, AR, LMG, etc.)"
-        tests:
-          - not_null
-      
       - name: weapon_kills
         description: "Kills avec cette arme"
         tests:

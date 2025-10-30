@@ -1,5 +1,5 @@
 """
-BF6 Meta Aggregator Dashboard - Streamlit Cloud Entry Point
+BF6 Meta Aggregator Dashboard
 
 A Streamlit dashboard to visualize Battlefield 6 weapon meta statistics.
 This is the MVP version focusing on Top 3 Weapons display.
@@ -9,10 +9,9 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Import utilities from dashboard.utils (for Streamlit Cloud at root)
+# Import utilities from dashboard folder
 from dashboard.utils import (
     load_top_weapons,
-    load_weapon_types_stats,
     get_last_extraction_date,
     clear_cache,
     plot_top_weapons_bar,
@@ -254,7 +253,6 @@ def main():
         # Load data
         with st.spinner("📊 Loading data from BigQuery..."):
             df_top_weapons = load_top_weapons()
-            df_weapon_types = load_weapon_types_stats()
         
         if df_top_weapons.empty:
             st.error("❌ No data available. Please check BigQuery connection.")
@@ -266,12 +264,12 @@ def main():
         # Info badge about data source
         st.info("📊 **Data Source:** BigQuery Gold Layer (`gold_top_weapons_global`) - Aggregated analytics-ready data")
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             total_kills = int(df_top_weapons['total_kills'].sum())
             st.metric(
-                label="🔫 Total Kills (Top 3)",
+                label="🔫 Total Kills (Top 10)",
                 value=format_number(total_kills)
             )
         
@@ -287,13 +285,6 @@ def main():
             st.metric(
                 label="🎯 Avg Accuracy",
                 value=format_percentage(avg_accuracy)
-            )
-        
-        with col4:
-            avg_headshot = df_top_weapons['avg_headshot_pct'].mean()
-            st.metric(
-                label="💀 Avg Headshot %",
-                value=format_percentage(avg_headshot)
             )
         
         st.divider()
@@ -318,30 +309,26 @@ def main():
             df_display = df_top_weapons.copy()
             df_display['total_kills'] = df_display['total_kills'].apply(lambda x: format_number(x))
             df_display['avg_accuracy'] = df_display['avg_accuracy'].apply(lambda x: format_percentage(x))
-            df_display['avg_headshot_pct'] = df_display['avg_headshot_pct'].apply(lambda x: format_percentage(x))
-            df_display['avg_damage'] = df_display['avg_damage'].apply(lambda x: format_number(x, 0))
+            df_display['avg_kills_per_player'] = df_display['avg_kills_per_player'].apply(lambda x: format_number(x, 0))
             
             # Rename columns for display
             df_display = df_display.rename(columns={
                 'weapon_name': 'Weapon',
-                'weapon_type': 'Type',
                 'total_kills': 'Total Kills',
                 'avg_accuracy': 'Avg Accuracy',
-                'avg_headshot_pct': 'Avg Headshot %',
                 'player_count': 'Players',
-                'avg_damage': 'Avg Damage',
-                'avg_time_played': 'Avg Time Played'
+                'avg_kills_per_player': 'Avg Kills/Player'
             })
             
             # Select columns to display
-            columns_to_show = ['Weapon', 'Type', 'Total Kills', 'Players', 'Avg Accuracy', 'Avg Headshot %', 'Avg Damage']
+            columns_to_show = ['Weapon', 'Total Kills', 'Players', 'Avg Kills/Player', 'Avg Accuracy']
             
             # Style the dataframe
             st.dataframe(
                 df_display[columns_to_show],
                 use_container_width=True,
                 hide_index=True,
-                height=200
+                height=400
             )
             
             # Download button
@@ -362,17 +349,20 @@ def main():
             **Insights:**
             - Bubble size represents the number of players using each weapon
             - Higher accuracy doesn't always mean more kills
-            - Popular weapons tend to have moderate accuracy due to larger player base
+            - Popular weapons tend to have varied accuracy depending on weapon characteristics
             """)
         
         st.divider()
         
-        # === SECTION 4: WEAPON CARDS ===
-        st.header("🎖️ Top 3 Weapon Profiles")
+        # === SECTION 4: TOP WEAPON CARDS ===
+        st.header("🎖️ Top Weapon Profiles")
         
+        # Display top 3 weapons
         cols = st.columns(3)
         
-        for idx, (_, weapon) in enumerate(df_top_weapons.iterrows()):
+        for idx in range(min(3, len(df_top_weapons))):
+            weapon = df_top_weapons.iloc[idx]
+            
             with cols[idx]:
                 # Card container with custom class
                 st.markdown('<div class="weapon-card">', unsafe_allow_html=True)
@@ -381,17 +371,13 @@ def main():
                 rank_emoji = ["🥇", "🥈", "🥉"][idx]
                 st.markdown(f"### {rank_emoji} #{idx + 1}: {weapon['weapon_name']}")
                 
-                # Weapon type badge
-                st.caption(f"**Type:** {weapon['weapon_type']}")
-                
                 st.divider()
                 
                 # Stats
                 st.metric("Total Kills", format_number(weapon['total_kills']))
                 st.metric("Players Using", format_number(weapon['player_count']))
+                st.metric("Avg Kills/Player", format_number(weapon['avg_kills_per_player'], 0))
                 st.metric("Avg Accuracy", format_percentage(weapon['avg_accuracy']))
-                st.metric("Avg Headshot %", format_percentage(weapon['avg_headshot_pct']))
-                st.metric("Avg Damage", format_number(weapon['avg_damage'], 0))
                 
                 st.markdown('</div>', unsafe_allow_html=True)
         

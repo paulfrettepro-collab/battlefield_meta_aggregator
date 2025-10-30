@@ -147,7 +147,7 @@ def main():
     # Summary metrics
     st.header("📊 Global Statistics")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric("Total Players", len(df_players))
@@ -157,12 +157,9 @@ def main():
         st.metric("Total Kills", format_number(total_kills))
     
     with col3:
-        avg_accuracy = df_players['avg_accuracy'].mean()
-        st.metric("Avg Accuracy", format_percentage(avg_accuracy))
-    
-    with col4:
-        avg_headshot = df_players['avg_headshot_pct'].mean()
-        st.metric("Avg Headshot %", format_percentage(avg_headshot))
+        # Count players with location data
+        has_location = df_players['player_location'].notna().sum()
+        st.metric("Players with Location", has_location)
     
     st.divider()
     
@@ -193,17 +190,16 @@ def main():
     df_display['Rank'] = df_display['player_rank']
     df_display['Player'] = df_display['handle']
     df_display['Total Kills'] = df_display['total_kills'].apply(lambda x: format_number(x))
+    df_display['Matches'] = df_display['player_matches'].apply(lambda x: format_number(x) if pd.notna(x) else 'N/A')
+    df_display['Location'] = df_display['player_location'].apply(lambda x: x if pd.notna(x) else 'N/A')
     df_display['Main Weapon'] = df_display['main_weapon']
-    df_display['Main Weapon Type'] = df_display['main_weapon_type']
     df_display['Main Weapon Kills'] = df_display['main_weapon_kills'].apply(lambda x: format_number(x) if pd.notna(x) else 'N/A')
-    df_display['Avg Accuracy'] = df_display['avg_accuracy'].apply(lambda x: format_percentage(x))
-    df_display['Avg Headshot %'] = df_display['avg_headshot_pct'].apply(lambda x: format_percentage(x))
+    df_display['Main Weapon Accuracy'] = df_display['main_weapon_accuracy'].apply(lambda x: format_percentage(x) if pd.notna(x) else 'N/A')
     
     # Select columns to display
     columns_to_show = [
-        'Rank', 'Player', 'Total Kills', 'Main Weapon', 
-        'Main Weapon Type', 'Main Weapon Kills', 
-        'Avg Accuracy', 'Avg Headshot %'
+        'Rank', 'Player', 'Total Kills', 'Matches', 'Location',
+        'Main Weapon', 'Main Weapon Kills', 'Main Weapon Accuracy'
     ]
     
     st.dataframe(
@@ -239,14 +235,20 @@ def main():
         with col2:
             st.markdown(f"**{player['handle']}**")
             st.caption(f"Rank: {player['player_rank']}")
+            if pd.notna(player['player_location']):
+                st.caption(f"📍 {player['player_location']}")
         
         with col3:
             st.metric("Total Kills", format_number(player['total_kills']))
             st.caption(f"Main: {player['main_weapon']}")
+            if pd.notna(player['player_matches']):
+                st.caption(f"Matches: {format_number(player['player_matches'])}")
         
         with col4:
-            st.metric("Accuracy", format_percentage(player['avg_accuracy']))
-            st.metric("Headshot %", format_percentage(player['avg_headshot_pct']))
+            if pd.notna(player['main_weapon_accuracy']):
+                st.metric("Main Weapon Accuracy", format_percentage(player['main_weapon_accuracy']))
+            if pd.notna(player['secondary_weapon']):
+                st.caption(f"2nd: {player['secondary_weapon']}")
         
         st.markdown('</div>', unsafe_allow_html=True)
     

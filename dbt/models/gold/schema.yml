@@ -2,21 +2,16 @@ version: 2
 
 models:
   - name: gold_top_weapons_global
-    description: "Top 3 armes qui font le plus de kills (MVP Dashboard)"
+    description: "Top 10 armes qui font le plus de kills (MVP Dashboard)"
     columns:
       - name: global_rank
-        description: "Rang global de l'arme (1-3)"
+        description: "Rang global de l'arme (1-10)"
         tests:
           - not_null
           - unique
       
       - name: weapon_name
         description: "Nom de l'arme"
-        tests:
-          - not_null
-      
-      - name: weapon_type
-        description: "Type d'arme"
         tests:
           - not_null
       
@@ -31,20 +26,15 @@ models:
           - not_null
 
   - name: gold_top_weapons_by_type
-    description: "Top 3 armes par catégorie de weapon_type"
+    description: "Top 20 armes par nombre de kills totaux"
     columns:
-      - name: weapon_type
-        description: "Type d'arme"
-        tests:
-          - not_null
-      
       - name: weapon_name
         description: "Nom de l'arme"
         tests:
           - not_null
       
-      - name: rank_in_type
-        description: "Rang de l'arme dans sa catégorie (1-3)"
+      - name: weapon_rank
+        description: "Rang de l'arme (1-20)"
         tests:
           - not_null
       
