@@ -31,12 +31,14 @@
 **🏆 DERNIÈRE EXTRACTION** : 30 oct 2025 - 50 joueurs, 150 armes (SG 553R, TR-7, M4A1, DRS-IAR, M433, etc.)
 
 **📊 DASHBOARD** : 
-- ☁️ **Cloud** : https://battlefieldmetaaggregator.streamlit.app ✅ **FIXED** (30 oct 2025)
-  - **✅ RÉSOLU** : Erreur `weapon_type` corrigée - Dashboard entièrement fonctionnel
-  - Déploiement auto depuis GitHub (commit `7941e14`)
-  - Attendre 2-3 min pour redéploiement après push
+- ☁️ **Cloud** : https://battlefieldmetaaggregator.streamlit.app ✅ **100% FONCTIONNEL** (30 oct 2025)
+  - **✅ RÉSOLU** : Toutes les erreurs `weapon_type` corrigées
+  - **✅ TESTÉ** : 3 pages opérationnelles (Home, All Weapons, All Players)
+  - Déploiement auto depuis GitHub (commit `8f3bac4`)
+  - Données du 30 oct 2025 (50 joueurs, 150 armes)
 - 🏠 **Local** : `streamlit run streamlit_app.py` → http://localhost:8501 ✅ **TESTÉ**
-  - Données 30 oct 2025 affichées correctement
+  - Graphiques Plotly affichés correctement
+  - TOP 10 armes, scatter plot, métriques fonctionnelles
 - 🌐 **Réseau** : http://192.168.1.12:8501 (accessible WiFi local)
 ---
 
