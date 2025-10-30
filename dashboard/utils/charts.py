@@ -45,34 +45,30 @@ def plot_top_weapons_bar(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
         x='total_kills',
         y='weapon_name',
         orientation='h',
-        color='weapon_type',
         color_discrete_sequence=colors,
         hover_data={
             'weapon_name': False,
-            'weapon_type': True,
             'total_kills': ':,',
             'avg_accuracy': ':.1%',
             'player_count': True
         },
         labels={
             'total_kills': 'Total Kills',
-            'weapon_name': 'Weapon',
-            'weapon_type': 'Type'
+            'weapon_name': 'Weapon'
         }
     )
     
     fig.update_layout(
         title={
-            'text': '🏆 Top 3 Weapons by Total Kills',
+            'text': '🏆 Top 10 Weapons by Total Kills',
             'x': 0.5,
             'xanchor': 'center',
             'font': {'size': 24, 'weight': 'bold', 'color': text_color}
         },
         xaxis_title="Total Kills",
         yaxis_title="",
-        showlegend=True,
-        legend_title="Weapon Type",
-        height=400,
+        showlegend=False,
+        height=500,
         hovermode='closest',
         plot_bgcolor=bg_color,
         paper_bgcolor=bg_color,
@@ -164,7 +160,6 @@ def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
         x='avg_accuracy',
         y='total_kills',
         size='player_count',
-        color='weapon_type',
         hover_name='weapon_name',
         hover_data={
             'avg_accuracy': ':.1%',
@@ -173,9 +168,9 @@ def plot_accuracy_scatter(df: pd.DataFrame, theme: str = "dark") -> go.Figure:
         },
         labels={
             'avg_accuracy': 'Average Accuracy',
-            'total_kills': 'Total Kills',
-            'weapon_type': 'Type'
-        }
+            'total_kills': 'Total Kills'
+        },
+        color_discrete_sequence=['#FF6B6B']
     )
     
     fig.update_layout(
