@@ -108,51 +108,343 @@ Top armes dans le leaderboard (exemples) :
 
 ## 🏗️ Architecture du Pipeline
 
+### Vue d'Ensemble (Data Flow)
+
 ```
 ┌───────────────────────────────────────────────────────────┐
 │              TRACKER.GG (Source de données)               │
 │  • Leaderboard + Player Profiles                         │
 │  • Extraction: Selenium + undetected-chromedriver        │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ extract_bf6_leaderboard.py
-                  │ extract_bf6_top_weapons_final.py
+                  │ scripts/extract_bf6_meta_complete.py
+                  │ (50 joueurs × 3 armes = 150 weapons)
+                  ▼
+┌───────────────────────────────────────────────────────────┐
+│         DATA LAKE - data/bronze/ (Fichiers NDJSON)        │
+│  • leaderboard/bf6_leaderboard_YYYYMMDD.ndjson            │
+│  • top_weapons/bf6_weapons_YYYYMMDD.ndjson                │
+└─────────────────┬─────────────────────────────────────────┘
+                  │ scripts/load_to_bigquery_latest.py
+                  │ (auto-détecte derniers fichiers)
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │         BRONZE - BigQuery (Tables brutes)                 │
-│  • bf6_meta.bronze_leaderboard (97 joueurs)               │
-│  • bf6_meta.bronze_top_weapons (288 armes)                │
+│  • bf6_meta.bronze_leaderboard (50 joueurs)               │
+│  • bf6_meta.bronze_weapons (150 armes)                    │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ DBT transformations
+                  │ dbt/models/bronze/sources.yml
+                  │ (définit sources DBT)
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │         SILVER - BigQuery (Tables nettoyées)              │
-│  • silver_players (97 joueurs)                            │
-│  • silver_weapons (288 armes)                             │
+│  • silver_players (50 joueurs + stats enrichies)          │
+│  • silver_weapons (150 armes + métriques calculées)       │
 │  • silver_player_weapons (jointure enrichie)              │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ DBT aggregations
+                  │ dbt/models/gold/*.sql
+                  │ (agrégations + classements)
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │         GOLD - BigQuery (Tables finales)                  │
-│  • gold_top_weapons_global (Top 3 MVP)                    │
-│  • gold_top_weapons_by_type (Top 3 par catégorie)         │
-│  • gold_player_rankings (96 joueurs)                      │
+│  • gold_top_weapons_global (Top 10 MVP)                   │
+│  • gold_top_weapons_by_type (Top 20 par catégorie)        │
+│  • gold_player_rankings (50 joueurs classés)              │
 └─────────────────┬─────────────────────────────────────────┘
-                  │ BigQuery connector
+                  │ dashboard/utils/bigquery.py
+                  │ (requêtes SQL vers tables gold)
                   ▼
 ┌───────────────────────────────────────────────────────────┐
 │              DASHBOARD - Streamlit                        │
-│  • Top 3 Weapons (page principale)                        │
-│  • All Weapons (filtres dynamiques)                       │
-│  • All Players (recherche + classement)                   │
+│  • streamlit_app.py (page principale)                     │
+│  • pages/1_All_Weapons.py (Top 20 + filtres)              │
+│  • pages/2_All_Players.py (50 joueurs + recherche)        │
+│  • dashboard/utils/charts.py (Plotly visualisations)      │
 └───────────────────────────────────────────────────────────┘
                   ▲
 ┌─────────────────┴─────────────────────────────────────────┐
-│         ORCHESTRATION - Apache Airflow (Phase 5)          │
-│  • DAG hebdomadaire (dimanches 2h UTC)                    │
-│  • Extract → Load BigQuery → DBT → Notifications          │
+│         ORCHESTRATION - Automation (Phase 6)              │
+│  • scripts/run_pipeline.sh (pipeline end-to-end)          │
+│  • Cron / GitHub Actions (exécution hebdomadaire)         │
+│  • Extract → Load → DBT → Validation                      │
 └───────────────────────────────────────────────────────────┘
 ```
+
+### Architecture des Dossiers & Dépendances
+
+```
+battlefield_meta_aggregator/
+│
+├── 📝 config/                         # CONFIGURATION
+│   └── bigquery-key.json              # 🔐 Credentials GCP (gitignored)
+│        ↓ utilisé par →
+│        ├── scripts/load_to_bigquery_latest.py
+│        ├── scripts/query_bigquery.py
+│        ├── dbt/profiles.yml
+│        └── dashboard/utils/bigquery.py
+│
+├── 🔧 scripts/                        # EXTRACTION & CHARGEMENT
+│   ├── extract_bf6_meta_complete.py   # [1] Extraction web scraping
+│   │    ├── Input: Tracker.gg (web)
+│   │    ├── Output: data/bronze/tracker_gg/*.ndjson
+│   │    └── Dépendances: selenium, undetected-chromedriver
+│   │
+│   ├── load_to_bigquery_latest.py     # [2] Chargement BigQuery
+│   │    ├── Input: data/bronze/tracker_gg/*.ndjson (auto-detect)
+│   │    ├── Output: BigQuery bronze_* tables
+│   │    └── Dépendances: google-cloud-bigquery, config/bigquery-key.json
+│   │
+│   ├── run_pipeline.sh                # [ORCHESTRATEUR] Pipeline complet
+│   │    ├── Étape 1: extract_bf6_meta_complete.py
+│   │    ├── Étape 2: load_to_bigquery_latest.py
+│   │    ├── Étape 3: cd dbt && dbt run && dbt test
+│   │    ├── Étape 4: Validation SQL (query_bigquery.py)
+│   │    └── Output: Logs dans data/logs/pipeline_*.log
+│   │
+│   ├── query_bigquery.py              # [VALIDATION] Requêtes analytiques
+│   │    ├── Input: BigQuery gold_* tables
+│   │    └── Output: Console (Top 3 armes, joueurs, etc.)
+│   │
+│   ├── test_bigquery_connection.py    # [TEST] Connexion BigQuery
+│   └── crontab_setup.txt              # [CONFIG] Automatisation cron
+│
+├── 📊 data/                           # DATA LAKE (local storage)
+│   ├── bronze/tracker_gg/             # Raw data (NDJSON)
+│   │   ├── leaderboard/               # Joueurs extraits
+│   │   │    └── bf6_leaderboard_YYYYMMDD_HHMMSS.ndjson
+│   │   │         ↓ chargé par → scripts/load_to_bigquery_latest.py
+│   │   │         ↓ vers → BigQuery bronze_leaderboard
+│   │   │
+│   │   └── top_weapons/               # Armes extraites
+│   │        └── bf6_weapons_YYYYMMDD_HHMMSS.ndjson
+│   │             ↓ chargé par → scripts/load_to_bigquery_latest.py
+│   │             ↓ vers → BigQuery bronze_weapons
+│   │
+│   ├── logs/                          # Logs du pipeline
+│   │    └── pipeline_*.log
+│   └── exploration/                   # Tests & analyses ad-hoc
+│
+├── 🏗️ dbt/                            # TRANSFORMATIONS DBT
+│   ├── profiles.yml                   # Config connexion BigQuery
+│   │    └── Utilise: config/bigquery-key.json
+│   │
+│   ├── dbt_project.yml                # Config projet DBT
+│   │
+│   └── models/                        # Modèles SQL (Bronze → Silver → Gold)
+│       │
+│       ├── bronze/                    # Layer 1: Sources brutes
+│       │   └── sources.yml            # Définit bronze_* tables BigQuery
+│       │        ↓ référence →
+│       │        ├── bf6_meta.bronze_leaderboard
+│       │        └── bf6_meta.bronze_weapons
+│       │
+│       ├── silver/                    # Layer 2: Nettoyage & Enrichissement
+│       │   ├── silver_players.sql     # Joueurs + stats calculées
+│       │   │    ├── Input: {{ source('bf6_meta', 'bronze_leaderboard') }}
+│       │   │    └── Output: bf6_meta_silver.silver_players
+│       │   │
+│       │   ├── silver_weapons.sql     # Armes + métriques normalisées
+│       │   │    ├── Input: {{ source('bf6_meta', 'bronze_weapons') }}
+│       │   │    └── Output: bf6_meta_silver.silver_weapons
+│       │   │
+│       │   └── silver_player_weapons.sql  # Jointure enrichie
+│       │        ├── Input: silver_players + silver_weapons
+│       │        └── Output: bf6_meta_silver.silver_player_weapons
+│       │
+│       └── gold/                      # Layer 3: Agrégations finales
+│           ├── gold_top_weapons_global.sql  # Top 10 armes MVP
+│           │    ├── Input: {{ ref('silver_player_weapons') }}
+│           │    └── Output: bf6_meta_gold.gold_top_weapons_global
+│           │         ↓ consommé par → dashboard (page Home)
+│           │
+│           ├── gold_top_weapons_by_type.sql  # Top 20 armes (par type)
+│           │    ├── Input: {{ ref('silver_weapons') }}
+│           │    └── Output: bf6_meta_gold.gold_top_weapons_by_type
+│           │         ↓ consommé par → dashboard (All Weapons)
+│           │
+│           └── gold_player_rankings.sql  # Classement joueurs
+│                ├── Input: {{ ref('silver_players') }}
+│                └── Output: bf6_meta_gold.gold_player_rankings
+│                     ↓ consommé par → dashboard (All Players)
+│
+├── 📊 dashboard/                      # STREAMLIT DASHBOARD
+│   ├── utils/                         # Utilitaires réutilisables
+│   │   ├── bigquery.py                # Connecteur BigQuery
+│   │   │    ├── Input: BigQuery gold_* tables
+│   │   │    ├── Fonctions: load_top_weapons(), load_all_weapons(), etc.
+│   │   │    ├── Cache: @st.cache_data (10 min TTL)
+│   │   │    └── Utilisé par: streamlit_app.py + pages/*.py
+│   │   │
+│   │   ├── charts.py                  # Graphiques Plotly
+│   │   │    ├── Fonctions: plot_top_weapons_bar(), plot_accuracy_scatter()
+│   │   │    └── Utilisé par: streamlit_app.py + pages/*.py
+│   │   │
+│   │   └── formatting.py              # Formatage (nombres, dates, %)
+│   │
+│   ├── pages/                         # Pages multi-pages Streamlit
+│   │   ├── 1_🔫_All_Weapons.py        # Top 20 armes + filtres
+│   │   │    └── Requête: gold_top_weapons_by_type
+│   │   │
+│   │   └── 2_👥_All_Players.py        # 50 joueurs + recherche
+│   │        └── Requête: gold_player_rankings
+│   │
+│   └── app.py                         # Code principal du dashboard
+│        └── Copié vers → streamlit_app.py (root, pour Streamlit Cloud)
+│
+├── streamlit_app.py                   # 🌐 DASHBOARD PRINCIPAL (root)
+│   ├── Input: BigQuery gold_top_weapons_global
+│   ├── Imports: dashboard.utils.bigquery, dashboard.utils.charts
+│   ├── Affichage: TOP 10 armes + scatter plot + 3 metrics
+│   └── Déployé sur: https://battlefieldmetaaggregator.streamlit.app
+│
+├── pages/                             # 📄 PAGES STREAMLIT (root, copie de dashboard/pages/)
+│   ├── 1_🔫_All_Weapons.py            # (copie identique pour Streamlit Cloud)
+│   └── 2_👥_All_Players.py            # (copie identique pour Streamlit Cloud)
+│
+├── 🤖 airflow/                        # ORCHESTRATION AIRFLOW (archived)
+│   └── dags/
+│       └── bf6_weekly_extraction.py   # DAG automatisation (non utilisé en prod)
+│            ├── Alternative: scripts/run_pipeline.sh + cron
+│            └── Statut: Créé mais non déployé (Airflow standalone non installé)
+│
+├── 📚 docs/                           # DOCUMENTATION
+│   ├── BIGQUERY_GUIDE.md              # Setup BigQuery + exemples SQL
+│   ├── STREAMLIT_GUIDE.md             # Guide dashboard complet
+│   ├── STREAMLIT_CLOUD_DEPLOY.md      # Déploiement Cloud
+│   ├── AUTOMATION_GUIDE.md            # Cron / GitHub Actions / Cloud Functions
+│   └── CLI_GIT_GUIDE.md               # Commandes Git/Python/SQL
+│
+├── 📦 archive/                        # ANCIENS FICHIERS (26 fichiers)
+│   └── Scripts de test obsolètes (Phase 0-2)
+│
+└── 🕷️ extract/                        # SCRAPY PROJECT (archived)
+    └── spiders/                       # Alternative scraping (non utilisée)
+         └── Statut: Remplacé par extract_bf6_meta_complete.py
+```
+
+### Flux de Données Complet (Step-by-Step)
+
+#### **Phase 1 : Extraction (4-5 min)**
+```
+Tracker.gg (Web)
+    ↓
+scripts/extract_bf6_meta_complete.py
+    ├── Étape 1: Leaderboard (top 50 joueurs) → 25s
+    ├── Étape 2: Top 3 armes par joueur → 4min
+    └── Output:
+         ├── data/bronze/tracker_gg/leaderboard/bf6_leaderboard_20251030_160241.ndjson (50 lignes)
+         └── data/bronze/tracker_gg/top_weapons/bf6_weapons_20251030_160241.ndjson (150 lignes)
+```
+
+#### **Phase 2 : Chargement BigQuery (16s)**
+```
+data/bronze/tracker_gg/*.ndjson
+    ↓
+scripts/load_to_bigquery_latest.py
+    ├── Détection automatique derniers fichiers NDJSON
+    ├── Chargement BigQuery (WRITE_APPEND mode)
+    └── Output:
+         ├── BigQuery: bf6_meta.bronze_leaderboard (50 rows)
+         └── BigQuery: bf6_meta.bronze_weapons (150 rows)
+```
+
+#### **Phase 3 : Transformations DBT (13s)**
+```
+BigQuery bronze_* tables
+    ↓
+dbt run (dbt/models/)
+    ├── Bronze → Silver (nettoyage, typage, enrichissement)
+    │    ├── silver_players (50 rows)
+    │    ├── silver_weapons (150 rows)
+    │    └── silver_player_weapons (150 rows jointure)
+    │
+    └── Silver → Gold (agrégations, classements)
+         ├── gold_top_weapons_global (10 rows - MVP)
+         ├── gold_top_weapons_by_type (20 rows - par catégorie)
+         └── gold_player_rankings (50 rows - classement)
+```
+
+#### **Phase 4 : Tests de Qualité (18s)**
+```
+BigQuery gold_* tables
+    ↓
+dbt test
+    ├── Tests unicité (unique primary keys)
+    ├── Tests valeurs nulles (not_null columns)
+    ├── Tests relations (foreign keys)
+    └── Résultat: 42/44 tests PASS (2 warnings doublons mineurs)
+```
+
+#### **Phase 5 : Dashboard (Temps réel)**
+```
+BigQuery gold_* tables
+    ↓
+dashboard/utils/bigquery.py
+    ├── load_top_weapons() → gold_top_weapons_global
+    ├── load_all_weapons() → gold_top_weapons_by_type
+    └── load_player_rankings() → gold_player_rankings
+         ↓
+streamlit_app.py + pages/*.py
+    ├── Cache: @st.cache_data (10 min TTL)
+    ├── Visualisations: Plotly charts
+    └── Output: https://battlefieldmetaaggregator.streamlit.app
+```
+
+#### **Phase 6 : Automatisation (Hebdomadaire)**
+```
+Cron / GitHub Actions (Dimanches 2h UTC)
+    ↓
+scripts/run_pipeline.sh
+    ├── [1] Extraction → data/bronze/
+    ├── [2] Chargement → BigQuery bronze_*
+    ├── [3] DBT run → BigQuery silver_* + gold_*
+    ├── [4] DBT test → Validation qualité
+    └── [5] Logs → data/logs/pipeline_*.log
+         ↓
+Streamlit Cloud (auto-refresh cache après 10 min)
+```
+
+### Dépendances entre Composants
+
+| Composant | Dépend de | Utilisé par |
+|-----------|-----------|-------------|
+| **config/bigquery-key.json** | - | scripts/*, dbt/profiles.yml, dashboard/utils/bigquery.py |
+| **scripts/extract_bf6_meta_complete.py** | Tracker.gg (web) | scripts/run_pipeline.sh |
+| **data/bronze/*.ndjson** | extract_bf6_meta_complete.py | load_to_bigquery_latest.py |
+| **BigQuery bronze_*** | load_to_bigquery_latest.py | dbt/models/bronze/sources.yml |
+| **dbt/models/silver/** | BigQuery bronze_* | dbt/models/gold/ |
+| **BigQuery gold_*** | dbt/models/gold/ | dashboard/utils/bigquery.py |
+| **dashboard/utils/bigquery.py** | BigQuery gold_* | streamlit_app.py, pages/*.py |
+| **dashboard/utils/charts.py** | - | streamlit_app.py, pages/*.py |
+| **streamlit_app.py** | dashboard/utils/* | Streamlit Cloud |
+| **scripts/run_pipeline.sh** | extract, load, dbt | Cron / GitHub Actions |
+
+### Points Clés de l'Architecture
+
+✅ **Séparation des responsabilités** :
+- `scripts/` : Extraction & Chargement (Python)
+- `dbt/` : Transformations SQL (Bronze → Silver → Gold)
+- `dashboard/` : Visualisation (Streamlit + Plotly)
+
+✅ **Pipeline automatisé end-to-end** :
+- 1 script bash (`run_pipeline.sh`) orchestre tout
+- Durée totale : ~5 minutes (extraction → validation)
+
+✅ **Data Lake local + Data Warehouse cloud** :
+- Local : `data/bronze/` (NDJSON, versionné par timestamp)
+- Cloud : BigQuery (tables Bronze/Silver/Gold)
+
+✅ **Cache intelligent** :
+- Dashboard Streamlit : 10 min TTL (@st.cache_data)
+- Évite requêtes BigQuery répétées
+
+✅ **Déploiement continu** :
+- Push GitHub main → Streamlit Cloud auto-deploy
+- Zéro downtime, SSL automatique
+
+✅ **3 layers de transformation** :
+- **Bronze** : Données brutes (extraction Tracker.gg)
+- **Silver** : Données nettoyées (typage, enrichissement)
+- **Gold** : Données finales (agrégations, classements)
 
 ---
 
