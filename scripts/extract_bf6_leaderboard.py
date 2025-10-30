@@ -29,14 +29,17 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 LEADERBOARD_URL = "https://tracker.gg/bf6/leaderboards?platform=all&board=Kills&page=1"
 
 
-def extract_leaderboard():
+def extract_leaderboard(max_players=50):
     """
-    Extrait le top 100 du leaderboard BF6
+    Extrait le top N du leaderboard BF6
+    
+    Args:
+        max_players: Nombre max de joueurs à extraire (défaut: 50 pour MVP)
     
     Returns:
-        list: Liste des joueurs avec {handle, player_id, rank, kills}
+        list: Liste des joueurs avec {handle, player_id, rank, kills, location, matches_played}
     """
-    logger.info("🚀 Démarrage de l'extraction du leaderboard")
+    logger.info(f"🚀 Démarrage de l'extraction du leaderboard (top {max_players})")
     logger.info(f"🔗 URL: {LEADERBOARD_URL}")
     
     driver = None
@@ -71,6 +74,11 @@ def extract_leaderboard():
         
         players = []
         for row in player_rows:
+            # Limiter au nombre demandé
+            if len(players) >= max_players:
+                logger.info(f"🎯 Limite de {max_players} joueurs atteinte")
+                break
+                
             try:
                 # Récupérer toutes les cellules
                 cells = row.find_all('td')
@@ -85,19 +93,30 @@ def extract_leaderboard():
                     continue
                 rank = int(rank_span.get_text(strip=True))
                 
-                # Cellule 1: Lien du joueur avec handle et player_id
+                # Cellule 1: Lien du joueur avec handle et player_id + location
                 player_link = cells[1].find('a', href=lambda x: x and '/bf6/profile/' in x if x else False)
                 if not player_link:
                     continue
                 
-                # Extraire player_id depuis href: "/bf6/profile/1016329076176" -> "1016329076176"
-                player_id = player_link['href'].split('/')[-1]
+                # Extraire player_id depuis href: "/bf6/profile/1006806438138"
+                # Format: ['', 'bf6', 'profile', '{player_id}']
+                href_parts = player_link['href'].split('/')
+                if len(href_parts) < 4:
+                    continue
+                player_id = href_parts[-1]  # Dernier segment = player_id
                 
                 # Extraire handle depuis span avec classe 'truncate' dans le lien
                 handle_span = player_link.find('span', class_='truncate')
                 if not handle_span:
                     continue
                 handle = handle_span.get_text(strip=True)
+                
+                # Extraire location (flag emoji ou country code)
+                location = None
+                # Chercher l'img du flag dans la cellule 1
+                flag_img = cells[1].find('img', alt=True)
+                if flag_img:
+                    location = flag_img['alt']  # ex: "United States", "Canada", etc.
                 
                 # Cellule 3 ou 4: Kills (grand nombre avec virgule comme séparateur)
                 kills = 0
@@ -113,12 +132,28 @@ def extract_leaderboard():
                                     kills = test_kills
                                     break
                 
+                # Cellule 5 ou 6: Matches Played (nombre avec virgule)
+                matches_played = None
+                for cell_idx in [4, 5]:  # Chercher dans les cellules après kills
+                    if cell_idx < len(cells):
+                        matches_span = cells[cell_idx].find('span', class_='truncate')
+                        if matches_span:
+                            matches_text = matches_span.get_text(strip=True).replace(',', '').replace(' ', '')
+                            # Vérifier si c'est un nombre raisonnable (< 10000 généralement)
+                            if matches_text.isdigit():
+                                test_matches = int(matches_text)
+                                if 10 < test_matches < 10000:  # Matches raisonnables
+                                    matches_played = test_matches
+                                    break
+                
                 if handle and player_id and kills > 0:
                     players.append({
                         'handle': handle,
                         'player_id': player_id,
                         'rank': rank,
                         'kills': kills,
+                        'location': location,
+                        'matches_played': matches_played,
                         'extraction_date': datetime.now().isoformat(),
                         'url_source': LEADERBOARD_URL
                     })
@@ -137,7 +172,9 @@ def extract_leaderboard():
         if players:
             logger.info("\n🏆 Top 5:")
             for p in players[:5]:
-                logger.info(f"  {p['rank']}. {p['handle']} - {p['kills']:,} kills (ID: {p['player_id']})")
+                loc = p.get('location', 'N/A')
+                matches = p.get('matches_played', 'N/A')
+                logger.info(f"  {p['rank']}. {p['handle']} - {p['kills']:,} kills - {loc} - {matches} matches (ID: {p['player_id']})")
         
         return players
         

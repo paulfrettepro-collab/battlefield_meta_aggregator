@@ -54,7 +54,11 @@ def get_driver():
     """
     if not hasattr(thread_local, "driver"):
         logger.info("🌐 Création d'un nouveau driver Chrome pour ce thread")
-        thread_local.driver = uc.Chrome()
+        # Force version ChromeDriver compatible avec Chrome 141
+        thread_local.driver = uc.Chrome(
+            version_main=141,  # Force version 141 pour compatibilité
+            driver_executable_path=None  # Auto-download si besoin
+        )
     return thread_local.driver
 
 
