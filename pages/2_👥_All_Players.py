@@ -129,12 +129,12 @@ def main():
     **BigQuery Table:**
     - `gold_player_rankings`
     
-    Top 100 players with their main weapons and stats.
+    Top 50 players with their main weapons and stats.
     """)
     
     # Main header
     st.title("👥 All Players Rankings")
-    st.markdown("Top 100 players from the leaderboard with their statistics")
+    st.markdown("Top 50 players from the leaderboard with their statistics")
     
     # Load data
     with st.spinner("📊 Loading players data..."):
@@ -257,7 +257,7 @@ def main():
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 2rem;'>
         <p>Data from BigQuery Gold Layer (gold_player_rankings)</p>
-        <p>Showing top 100 players from Tracker.gg leaderboard</p>
+        <p>Showing top 50 players from Tracker.gg leaderboard</p>
     </div>
     """, unsafe_allow_html=True)
 

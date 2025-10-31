@@ -214,32 +214,43 @@ def main():
         last_date = get_last_extraction_date()
         st.info(f"**Last Update:**\n\n{last_date}")
         
+        st.caption("📊 **Dataset:** 50 players × 3 weapons = 150 weapons analyzed")
+        
         # Data source info
         st.divider()
         st.subheader("🗄️ Data Source")
         st.markdown("""
         **BigQuery Tables:**
-        - 🥉 Bronze: Raw data
-        - 🥈 Silver: Cleaned data
+        - 🥉 Bronze: Raw NDJSON data
+        - 🥈 Silver: Cleaned & enriched
         - 🥇 **Gold: Analytics** ✅
         
         This dashboard displays data from the **Gold layer** 
         (aggregated & analytics-ready).
+        
+        **Top 3 Weapons:**
+        1. 🥇 SG 553R (86,897 kills)
+        2. 🥈 TR-7 (50,394 kills)
+        3. 🥉 M4A1 (39,049 kills)
         """)
         
         # About section
         st.divider()
         st.subheader("ℹ️ About")
         st.markdown("""
-        This dashboard displays real-time statistics from the Battlefield 6 
-        top 100 leaderboard.
+        This dashboard displays real-time statistics from the **Battlefield 6 
+        top 50 leaderboard** (by total kills).
         
         **Data Pipeline:**
-        - Web scraping (Tracker.gg)
-        - MinIO storage
-        - BigQuery warehouse
-        - DBT transformations
-        - Streamlit dashboard
+        1. 🕷️ Web scraping (Selenium + Tracker.gg)
+        2. 💾 Local storage (NDJSON files)
+        3. ☁️ BigQuery warehouse (Bronze tables)
+        4. 🏗️ DBT transformations (Silver → Gold)
+        5. 📊 Streamlit dashboard (this app!)
+        
+        **Tech Stack:** Python 3.12, Selenium, BigQuery, DBT Core, Streamlit, Plotly
+        
+        **Automation:** Weekly extractions via Cron/GitHub Actions
         
         **GitHub:** [BF6 Meta Aggregator](https://github.com/paulfrettepro-collab/battlefield_meta_aggregator)
         """)
