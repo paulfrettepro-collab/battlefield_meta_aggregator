@@ -28,6 +28,8 @@
 
 **🤖 Phase 6 (Automation) COMPLÈTE** : Script pipeline end-to-end | Prêt pour cron/GitHub Actions
 
+**🚀 Phase 7 (GitHub Actions CI/CD) EN COURS** : Jour 1/5 ✅ Service Account configuré | Prochaine étape : GitHub Secrets
+
 **🏆 DERNIÈRE EXTRACTION** : 30 oct 2025 - 50 joueurs, 150 armes (SG 553R, TR-7, M4A1, DRS-IAR, M433, etc.)
 
 **📊 DASHBOARD** : 
@@ -302,9 +304,9 @@ battlefield_meta_aggregator/
 │
 ├── 🤖 airflow/                        # ORCHESTRATION AIRFLOW (archived)
 │   └── dags/
-│       └── bf6_weekly_extraction.py   # DAG automatisation (non utilisé en prod)
-│            ├── Alternative: scripts/run_pipeline.sh + cron
-│            └── Statut: Créé mais non déployé (Airflow standalone non installé)
+│       └── bf6_weekly_extraction.py   # DAG automatisation (ARCHIVÉ - non utilisé)
+│            ├── Remplacé par: GitHub Actions workflow
+│            └── Statut: Alternative locale disponible (Airflow standalone)
 │
 ├── 📚 docs/                           # DOCUMENTATION
 │   ├── BIGQUERY_GUIDE.md              # Setup BigQuery + exemples SQL
@@ -936,22 +938,217 @@ python3 scripts/extract_bf6_top_weapons_parallel.py --limit 10 --workers 3
 
 **Options d'automatisation** :
 1. **Cron (Local)** : Simple, gratuit, contrôle total
-2. **GitHub Actions** : Cloud, gratuit (2000 min/mois), logs centralisés
+2. **GitHub Actions** : Cloud, gratuit (2000 min/mois), logs centralisés ⭐ **CHOIX RETENU**
 3. **Cloud Scheduler + Functions** : Fully managed, ~$0.50/mois
 
-#### 5.3 Prochaines étapes
-- [ ] Installation Airflow standalone (15 min)
-- [ ] Test DAG dans UI Airflow
-- [ ] Extraction complète 97 joueurs (validation 81-87% gain)
-- [ ] Mise à jour task `extract_weapons` dans DAG (utiliser script parallèle)
-- [ ] Intégration bouton "Refresh" dans dashboard → trigger DAG Airflow
-Ou
-- [ ] Configurer cron OU GitHub Actions (choix utilisateur)
-- [ ] Monitorer première exécution automatique
-- [ ] Ajouter bouton "Refresh" dans dashboard Streamlit
-- [ ] Historisation : conserver plusieurs extractions (semaine vs semaine)
+### 🚀 Phase 7 : GitHub Actions CI/CD **EN COURS** (31 oct 2025)
 
-**Durée estimée Phase 5-6** : ✅ COMPLÉTÉE (2 jours de développement)
+**Objectif** : Automatisation cloud complète avec GitHub Actions (gratuit, 2000 min/mois) ✅
+
+**📅 Date de début** : 1 novembre 2025
+**📊 Statut actuel** : Jour 1 - Configuration GCP ✅
+
+#### 7.1 Workflow Weekly Extraction (Priorité Haute)
+**Cible** : Extraction automatique chaque dimanche 2h UTC
+
+**✅ Jour 1 (1 nov 2025) - Configuration GCP COMPLÉTÉ** :
+- [x] **Service Account GCP** : Vérification existant
+  - ✅ Fichier : `config/bigquery-key.json` (2.4 KB)
+  - ✅ Email : `bigquery-admin-service-882@battlefield-meta-aggregator.iam.gserviceaccount.com`
+  - ✅ Project ID : `battlefield-meta-aggregator`
+  - ✅ Rôle : BigQuery Admin
+  - ✅ Configuration `.env` validée
+
+**🎯 Jour 2 (2 nov 2025) - Configuration GitHub Actions** :
+- [ ] **Encoder clé service account** :
+  ```bash
+  cat config/bigquery-key.json | base64 | pbcopy
+  ```
+
+- [ ] **Configurer GitHub Secrets** (Settings > Secrets > Actions) :
+  - `GCP_PROJECT_ID` = `battlefield-meta-aggregator`
+  - `GCP_SERVICE_ACCOUNT_KEY` = <contenu base64>
+  - `SLACK_WEBHOOK_URL` = (optionnel) Pour notifications
+
+- [ ] **Configurer Workflow Permissions** (Settings > Actions) :
+  - ✅ Read and write permissions
+  - ✅ Allow GitHub Actions to create PRs
+
+- [ ] **Créer workflow principal** : `.github/workflows/weekly_extraction.yml`
+  - Trigger : `schedule: cron '0 2 * * 0'` (dimanches 2h UTC)
+  - Trigger manuel : `workflow_dispatch` (bouton Run)
+  - Jobs séquentiels :
+    1. `setup` : Install Python 3.12, dependencies, configure GCP
+    2. `extract` : Run `scripts/extract_bf6_meta_complete.py`
+    3. `load` : Run `scripts/load_to_bigquery_latest.py`
+    4. `transform` : Install DBT, run `dbt run && dbt test`
+    5. `validate` : Run `scripts/query_bigquery.py`
+    6. `notify` : Send success/failure notification (Slack/Email)
+
+- [ ] **Test manuel workflow** :
+  - GitHub Actions UI > Weekly BF6 Meta Extraction > Run workflow
+  - Vérifier 6 jobs verts (durée ~6-8 min)
+  - Télécharger artifacts (logs, NDJSON)
+
+- [ ] **Artifacts & Caching** :
+  - Upload logs pipeline vers GitHub Artifacts (30 jours rétention)
+  - Cache pip dependencies (accélération 50%)
+  - Cache DBT packages
+
+- [ ] **Tests automatisés** :
+  - Validation format NDJSON (50 joueurs, 150 armes)
+  - Tests DBT (42/44 PASS minimum)
+  - Vérification BigQuery tables non vides
+
+**Durée estimée** : 2-3 heures
+**Bénéfice** : Zéro maintenance locale, logs centralisés GitHub
+
+#### 7.2 Workflow Dashboard Deploy (Priorité Moyenne)
+**Cible** : Auto-deploy Streamlit Cloud après extraction réussie
+
+- [ ] **Workflow** : `.github/workflows/deploy_dashboard.yml`
+  - Trigger : Succès de `weekly_extraction.yml`
+  - Sync `dashboard/` → root `pages/` et `streamlit_app.py`
+  - Commit automatique avec message "chore: sync dashboard files"
+  - Push → Streamlit Cloud auto-deploy
+
+- [ ] **Cache invalidation** :
+  - Attendre 5 min (délai BigQuery)
+  - Call Streamlit API pour clear cache (si disponible)
+
+**Durée estimée** : 1 heure
+**Bénéfice** : Dashboard toujours à jour automatiquement
+
+#### 7.3 Tests CI/CD (Priorité Moyenne)
+**Cible** : Tests automatiques sur chaque PR/commit
+
+- [ ] **Workflow** : `.github/workflows/ci_tests.yml`
+  - Trigger : `push`, `pull_request` (branches main, dev)
+  - Tests unitaires Python (pytest)
+  - Linting (flake8, black)
+  - Type checking (mypy)
+  - DBT tests (dry-run sur sample data)
+
+- [ ] **Coverage reports** :
+  - Codecov integration (badge dans README)
+  - Minimum 70% coverage requis
+
+**Durée estimée** : 3-4 heures
+**Bénéfice** : Qualité code garantie, détection bugs early
+
+#### 7.4 Monitoring & Alerting (Priorité Basse)
+**Cible** : Surveillance proactive du pipeline
+
+- [ ] **Notifications Slack/Discord** :
+  - Success : "✅ Extraction réussie : 50 joueurs, 150 armes (Top 3: SG 553R, TR-7, M4A1)"
+  - Failure : "❌ Extraction échouée : [error message] | Logs: [GitHub URL]"
+  - Weekly summary : "📊 Semaine du XX oct : 1 extraction, 100% succès"
+
+- [ ] **Dashboard GitHub** :
+  - Badge workflow status dans README
+  - Badge uptime Streamlit
+  - Badge last extraction date
+
+- [ ] **Healthcheck endpoint** :
+  - Script `scripts/healthcheck.py`
+  - Vérifie : BigQuery accessible, DBT OK, Streamlit up
+  - Appelé toutes les 6h par GitHub Actions
+
+**Durée estimée** : 2 heures
+**Bénéfice** : Détection rapide des pannes
+
+#### 7.5 Documentation & Runbook (Priorité Haute)
+**Cible** : Guide opérationnel complet
+
+- [ ] **Runbook** : `docs/RUNBOOK.md`
+  - Procédure extraction manuelle (GitHub UI)
+  - Résolution erreurs courantes (Cloudflare, BigQuery quota)
+  - Rollback procédure (revert commit + re-run DBT)
+  - Emergency contacts
+
+- [ ] **Architecture Decision Record** : `docs/ADR.md`
+  - Pourquoi GitHub Actions vs Airflow
+  - Coûts (2000 min/mois gratuit)
+  - Limitations (max 6h par job)
+
+**Durée estimée** : 1-2 heures
+**Bénéfice** : Autonomie, pas de dépendance à l'auteur
+
+### 📅 Planning Phase 7 (5-7 jours)
+
+**Semaine 1 (1-2 nov 2025)** :
+- Jour 1-2 : Workflow weekly_extraction.yml (étapes 7.1)
+- Jour 3 : Tests manuels + ajustements
+- Jour 4 : Workflow deploy_dashboard.yml (étape 7.2)
+- Jour 5 : Documentation runbook (étape 7.5)
+
+**Semaine 2 (optionnel)** :
+- Jour 6-7 : Tests CI/CD (étape 7.3)
+- Jour 8 : Monitoring & alerting (étape 7.4)
+
+### 🎯 Objectifs Phase 7
+
+**Must-Have** (Semaine 1) :
+- ✅ Extraction automatique hebdomadaire (GitHub Actions)
+- ✅ Chargement BigQuery + DBT transformations automatisés
+- ✅ Logs centralisés (GitHub Artifacts)
+- ✅ Notifications basiques (success/failure)
+- ✅ Runbook opérationnel
+
+**Nice-to-Have** (Semaine 2) :
+- ✅ Tests CI/CD sur PR
+- ✅ Monitoring proactif (Slack/Discord)
+- ✅ Dashboard auto-sync
+- ✅ Healthcheck automatique
+
+### ⚙️ Configuration Requise
+
+**GitHub Repository Settings** :
+```
+Settings > Secrets and variables > Actions
+- GCP_PROJECT_ID = "battlefield-meta-aggregator"
+- GCP_SERVICE_ACCOUNT_KEY = <contenu bigquery-key.json encodé base64>
+- SLACK_WEBHOOK_URL = <webhook optionnel>
+
+Settings > Actions > General
+- Workflow permissions: Read and write (pour commits auto)
+- Allow GitHub Actions to create and approve pull requests: ✓
+```
+
+**Service Account GCP** :
+```bash
+# Créer clé JSON pour GitHub Actions (si pas déjà fait)
+gcloud iam service-accounts keys create github-actions-key.json \
+  --iam-account=bf6-meta-sa@battlefield-meta-aggregator.iam.gserviceaccount.com
+
+# Encoder en base64 pour GitHub Secret
+cat github-actions-key.json | base64
+```
+
+### 🚨 Risques & Mitigations
+
+| Risque | Impact | Probabilité | Mitigation |
+|--------|--------|-------------|------------|
+| **Quota GitHub Actions dépassé** | Pipeline bloqué | Faible (2000 min/mois = 33h) | Monitoring usage, fallback cron local |
+| **Cloudflare bloque GitHub IPs** | Extraction échoue | Moyenne | Retry 3x, notification immediate, extraction manuelle |
+| **BigQuery quota dépassé** | Chargement bloqué | Très faible | 1 TB/mois gratuit, pipeline = 1 MB/semaine |
+| **DBT tests fail** | Pipeline arrêté | Faible | Allow 2 warnings, notification si > 5 failures |
+| **Streamlit Cloud down** | Dashboard inaccessible | Très faible | Rien à faire (problème Streamlit) |
+
+### 📊 Métriques Succès Phase 7
+
+**KPIs Techniques** :
+- ✅ 100% extractions réussies (4 semaines consécutives)
+- ✅ < 10 min durée pipeline (cible : 6-8 min avec cache)
+- ✅ 0 intervention manuelle (4 semaines)
+- ✅ 42/44 tests DBT PASS minimum
+
+**KPIs Opérationnels** :
+- ✅ < 5 min MTTR (Mean Time To Recovery) en cas d'échec
+- ✅ Notifications reçues sous 2 min (succès/échec)
+- ✅ Logs accessibles sous 1 min (GitHub Artifacts)
+
+---
 
 **Bénéfices obtenus** :
 - ⏰ Extraction : 4min 36s (50 joueurs) - ✅ Optimisée
