@@ -18,7 +18,7 @@
 **Chaque semaine**, échantillonner **100 joueurs** du leaderboard Tracker.gg, récupérer leurs **top 3 armes** (nom + kills), calculer les **armes les plus populaires** et afficher les tendances dans une petite UI.
 
 **Pipeline** : `Selenium` → `BigQuery (Bronze)` → `DBT (Silver/Gold)` → `Streamlit`  
-**Orchestration** : Apache Airflow (exécution hebdomadaire automatisée - Phase 5 en cours)
+**Orchestration** : Apache Airflow (exécution hebdomadaire automatisée - Phase 5 en cours) (Orchestration à réaliser pour la V2. D'abord manuelle avec un fichier SSH et cron avec github actions)
 
 **🎉 Phase 4.5 (Cloud Deploy) COMPLÈTE** : Dashboard public accessible 24/7 | Auto-deploy GitHub | SSL/HTTPS
 
@@ -50,6 +50,8 @@
 - **Champs** : `rank`, `username`, `platform`, `url_profil`
 - **Cible** : Page classement Tracker.gg (Top 100 kills)
 - **Méthode** : Selenium + undetected-chromedriver (bypass Cloudflare)
+
+**A voir pour une correction car il doit y avoir un lien entre le leaderboard et le fichier des armes**
 
 ### 2️⃣ **Top 3 Weapons per Player**
 - **Champs** : `weapon_name`, `kills`, `accuracy_pct` (en cours)
@@ -459,9 +461,10 @@ Streamlit Cloud (auto-refresh cache après 10 min)
 | **Data Lake**      | `MinIO` (S3-compatible)        | Stockage données non-structurées (futur)  |
 | **Transformation** | `DBT Core`                     | Modèles SQL Bronze → Silver → Gold        |
 | **Visualisation**  | `Streamlit`                    | Dashboard interactif Python               |
-| **Orchestration**  | `Apache Airflow`               | DAGs pour automatisation hebdomadaire     |
+| **Orchestration**  | `Apache Airflow`               | DAGs pour automatisation hebdomadaire     | Alternative à réaliser plus tard...
+| **Orchestration**  | `Bash/Cron/GitHub Actions`               | pour la simplicité |
 | **Conteneurisation**| `Docker` + `docker-compose`   | MinIO + Airflow, environnements isolés    |
-
+| **Langage**        | `Python 3.12+`                 | Scripts extraction, chargement, dashboard |
 ---
 
 ## 🚀 Démarrage Rapide
@@ -557,7 +560,8 @@ battlefield_meta_aggregator/
 │       ├── silver/                   # Layer 2: Nettoyage & Enrichissement
 │       │   ├── silver_players.sql    # ⭐ Joueurs + stats
 │       │   ├── silver_weapons.sql    # ⭐ Armes + métriques
-│       │   ├── silver_player_weapons.sql  # ⭐ Jointure enrichie
+│       │   ├── silver_player_weapons.sql  # ⭐ Jointure enrichie 
+**vérifier la jointure et comment elle est faite avec quoi**
 │       │   └── schema.yml            # Tests qualité
 │       └── gold/                     # Layer 3: Agrégations finales
 │           ├── gold_top_weapons_global.sql    # ⭐ Top 10 armes MVP
@@ -621,7 +625,7 @@ battlefield_meta_aggregator/
 - [x] Format NDJSON optimisé
 - [x] **Production-ready : 100/100 succès (22.66 KB)**
 
-### Phase 1 : MinIO Upload ✅ **COMPLÈTE**
+? ### Phase 1 : MinIO Upload ✅ **COMPLÈTE**
 - [x] Installer Docker Desktop
 - [x] `docker compose up -d minio`
 - [x] Créer bucket `bronze`
@@ -629,7 +633,7 @@ battlefield_meta_aggregator/
 - [x] **Fichiers uploadés** :
   - `bf6/top_weapons/bf6_top_weapons_2025-10-20_200220.ndjson` (23 KB, 100 joueurs)
   - `bf6/leaderboard/bf6_leaderboard_2025-10-18_174621.ndjson` (26 KB)
-- [x] Validé dans MinIO UI (http://localhost:9001)
+- [x] Validé dans MinIO UI (http://localhost:9001) ?à quoi me sert cette étape ?
 
 ### ✅ Phase 2 : BigQuery Setup **COMPLÈTE** (22 oct 2025)
 - [x] Créer projet Google Cloud (`battlefield-meta-aggregator`)
@@ -1314,3 +1318,6 @@ MIT License - Projet personnel d'apprentissage Data Engineering
 
 **Dernière mise à jour** : 30 octobre 2025 - Phase 6 (Automation) complète ✅ - Pipeline production-ready
 
+**02/11/2024** : 
+- Visiter le site de tracker GG et plutôt que d'extraire les joueurs le top 100 extraire aller directement dans la fiche de chaque joueurs filtré par nb kills desc en plus de récupérer leurs armes récupérer le nb de kills et faire un classement soit même avec une window function rank. over(partition by player_id order by kills desc)
+- Prévoir un endroit ou l'on retrouve tous les liens du projets -> Bigquery -> Streamlit -> GitHub repo -> Documentation
