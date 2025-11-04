@@ -125,8 +125,11 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: extraction-logs
-        path: data/logs/pipeline_*.log
+        path: |
+          data/logs/pipeline_*.log
+          data/bronze/tracker_gg/leaderboard/*.html
         retention-days: 30
+        if-no-files-found: ignore
     
     - name: Upload NDJSON files
       uses: actions/upload-artifact@v4
@@ -160,7 +163,7 @@ jobs:
         cache: 'pip'
     
     - name: Install dependencies
-      run: pip install google-cloud-bigquery pandas db-dtypes
+      run: pip install google-cloud-bigquery pandas db-dtypes python-dotenv
     
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
