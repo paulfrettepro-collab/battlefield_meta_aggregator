@@ -68,13 +68,24 @@ class ExtractionCheckpoint:
 
 def get_driver():
     """Créer un driver Chrome non détecté"""
+    import os
+    
     options = uc.ChromeOptions()
-    # Mode headless désactivé pour éviter détection
-    # options.add_argument('--headless=new')
+    
+    # Mode CI/CD : GitHub Actions nécessite headless
+    if os.getenv('GITHUB_ACTIONS') == 'true':
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=1920,1080')
+        logger.info("🤖 Mode CI/CD détecté - Chrome en mode headless")
+    else:
+        logger.info("💻 Mode local - Chrome avec interface graphique")
     
     driver = uc.Chrome(
         options=options,
-        version_main=141,  # Forcer version Chrome 141
+        version_main=None,  # Auto-detect version
         driver_executable_path=None
     )
     return driver

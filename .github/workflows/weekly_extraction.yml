@@ -78,10 +78,17 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install setuptools google-cloud-bigquery pandas selenium beautifulsoup4 undetected-chromedriver tqdm webdriver-manager
-        # Install Chrome for Selenium
-        sudo apt-get update
-        sudo apt-get install -y chromium-browser chromium-chromedriver
+        pip install setuptools google-cloud-bigquery pandas selenium beautifulsoup4 undetected-chromedriver tqdm
+        
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1
+      with:
+        chrome-version: stable
+    
+    - name: Verify Chrome installation
+      run: |
+        which google-chrome || which google-chrome-stable || which chromium-browser
+        google-chrome --version || google-chrome-stable --version || chromium-browser --version
     
     - name: Run extraction script
       id: extraction
@@ -90,10 +97,11 @@ jobs:
         
         # Vérifier fichiers créés
         LEADERBOARD_FILE=$(ls -t data/bronze/tracker_gg/leaderboard/*.ndjson 2>/dev/null | head -1)
-        WEAPONS_FILE=$(ls -t data/bronze/tracker_gg/top_weapons/*.ndjson 2>/dev/null | head -1)
+        WEAPONS_FILE=$(ls -t data/bronze/tracker_gg/weapons/*.ndjson 2>/dev/null | head -1)
         
         if [ -z "$LEADERBOARD_FILE" ] || [ -z "$WEAPONS_FILE" ]; then
           echo "❌ ERROR: Extraction files not found"
+          ls -la data/bronze/tracker_gg/
           exit 1
         fi
         
@@ -126,7 +134,7 @@ jobs:
         name: ndjson-data
         path: |
           data/bronze/tracker_gg/leaderboard/*.ndjson
-          data/bronze/tracker_gg/top_weapons/*.ndjson
+          data/bronze/tracker_gg/weapons/*.ndjson
         retention-days: 90
 
   #############################
@@ -152,7 +160,7 @@ jobs:
         cache: 'pip'
     
     - name: Install dependencies
-      run: pip install -r requirements.txt
+      run: pip install google-cloud-bigquery pandas db-dtypes
     
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -209,17 +217,21 @@ jobs:
     - name: Create DBT profiles
       run: |
         mkdir -p ~/.dbt
+        
+        # Créer fichier keyfile temporaire
+        echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp_keyfile.json
+        
+        # Créer profiles.yml
         cat > ~/.dbt/profiles.yml << EOF
         battlefield_meta:
           target: prod
           outputs:
             prod:
               type: bigquery
-              method: service-account-json
+              method: service-account
               project: ${{ secrets.GCP_PROJECT_ID }}
               dataset: bf6_meta
-              keyfile_json:
-                ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+              keyfile: /tmp/gcp_keyfile.json
               threads: 4
               timeout_seconds: 300
               location: US
