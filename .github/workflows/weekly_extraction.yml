@@ -213,6 +213,7 @@ jobs:
         pip install dbt-core dbt-bigquery
     
     - name: Authenticate to Google Cloud
+      id: auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -221,11 +222,11 @@ jobs:
       run: |
         mkdir -p ~/.dbt
         
-        # Créer fichier keyfile temporaire
-        echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp_keyfile.json
+        # Utiliser le fichier credentials créé par google-github-actions/auth
+        KEYFILE_PATH="${{ steps.auth.outputs.credentials_file_path }}"
         
-        # Créer profiles.yml dans ~/.dbt (priorité haute)
-        cat > ~/.dbt/profiles.yml << 'EOF'
+        # Créer profiles.yml dans ~/.dbt
+        cat > ~/.dbt/profiles.yml << EOF
         bf6_meta:
           target: prod
           outputs:
@@ -234,12 +235,14 @@ jobs:
               method: service-account
               project: battlefield-meta-aggregator
               dataset: bf6_meta
-              keyfile: /tmp/gcp_keyfile.json
+              keyfile: ${KEYFILE_PATH}
               threads: 4
               timeout_seconds: 300
               location: US
               priority: interactive
         EOF
+        
+        echo "✅ DBT profiles.yml created with keyfile: ${KEYFILE_PATH}"
     
     - name: DBT Debug
       working-directory: ./dbt
