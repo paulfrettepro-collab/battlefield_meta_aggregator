@@ -224,15 +224,15 @@ jobs:
         # Créer fichier keyfile temporaire
         echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp_keyfile.json
         
-        # Créer profiles.yml
-        cat > ~/.dbt/profiles.yml << EOF
-        battlefield_meta:
+        # Créer profiles.yml dans ~/.dbt (priorité haute)
+        cat > ~/.dbt/profiles.yml << 'EOF'
+        bf6_meta:
           target: prod
           outputs:
             prod:
               type: bigquery
               method: service-account
-              project: ${{ secrets.GCP_PROJECT_ID }}
+              project: battlefield-meta-aggregator
               dataset: bf6_meta
               keyfile: /tmp/gcp_keyfile.json
               threads: 4
@@ -243,12 +243,12 @@ jobs:
     
     - name: DBT Debug
       working-directory: ./dbt
-      run: dbt debug
+      run: dbt debug --profiles-dir ~/.dbt
     
     - name: DBT Run (Silver + Gold models)
       working-directory: ./dbt
       run: |
-        dbt run --models bronze silver gold
+        dbt run --profiles-dir ~/.dbt --models bronze silver gold
         echo "✅ DBT run completed"
     
     - name: DBT Test
@@ -256,7 +256,7 @@ jobs:
       working-directory: ./dbt
       continue-on-error: true
       run: |
-        dbt test > dbt_test_output.txt 2>&1 || true
+        dbt test --profiles-dir ~/.dbt > dbt_test_output.txt 2>&1 || true
         cat dbt_test_output.txt
         
         # Compter tests passés/échoués
