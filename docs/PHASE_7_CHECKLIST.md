@@ -30,55 +30,68 @@
   - [ ] Service account existe : `github-actions@battlefield-meta-aggregator.iam.gserviceaccount.com`
   - [ ] OU créer nouveau (commandes dans `GITHUB_ACTIONS_SETUP.md`)
 
-### 🎯 Jour 2 : Configuration GitHub Actions (2 nov 2025 - 1-2h)
+### ✅ Jour 2 : Configuration GitHub Actions (COMPLÉTÉ - 4 nov 2025)
 
-- [ ] **2.1 Encoder clé JSON pour GitHub Actions**
+- [x] **2.1 Encoder clé JSON pour GitHub Actions**
   ```bash
   cat config/bigquery-key.json | base64 | pbcopy
   ```
-  - [ ] Clé encodée et copiée dans clipboard
+  - [x] Clé encodée et sauvegardée dans `/tmp/github-actions-key-base64.txt` (3237 bytes)
 
-- [ ] **2.2 Configurer GitHub Secrets**
+- [ ] **2.2 Configurer GitHub Secrets** (ACTION MANUELLE REQUISE)
   - [ ] Aller sur : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/settings/secrets/actions
   - [ ] Créer secret `GCP_PROJECT_ID` = `battlefield-meta-aggregator`
-  - [ ] Créer secret `GCP_SERVICE_ACCOUNT_KEY` = <contenu base64>
+  - [ ] Créer secret `GCP_SERVICE_ACCOUNT_KEY` = <copier depuis `/tmp/github-actions-key-base64.txt`>
   - [ ] (Optionnel) Créer secret `SLACK_WEBHOOK_URL` = <webhook Slack>
 
-- [ ] **2.3 Configurer Permissions Workflow**
+- [ ] **2.3 Configurer Permissions Workflow** (ACTION MANUELLE REQUISE)
   - [ ] Settings > Actions > General
   - [ ] Workflow permissions : "Read and write"
   - [ ] ✅ Allow GitHub Actions to create PRs
 
 ---
 
-### Jour 2-3 : Création Workflow Weekly Extraction (3-4h)
+### ✅ Jour 2-3 : Création Workflow Weekly Extraction (COMPLÉTÉ - 4 nov 2025)
 
-- [ ] **2.1 Créer dossier workflows**
+- [x] **3.1 Créer dossier workflows**
   ```bash
   mkdir -p .github/workflows
   ```
 
-- [ ] **2.2 Créer fichier `weekly_extraction.yml`**
-  - [ ] Copier template depuis `docs/GITHUB_ACTIONS_SETUP.md`
-  - [ ] Ajuster paramètres si nécessaire (cron, player_limit, etc.)
+- [x] **3.2 Créer fichier `weekly_extraction.yml`**
+  - [x] Template complet créé (6 jobs : setup, extract, load, transform, validate, notify)
+  - [x] Cron schedule : Dimanches 2h UTC
+  - [x] Manual trigger : workflow_dispatch avec player_limit parameter
 
-- [ ] **2.3 Commit et push workflow**
+- [x] **3.2 Créer fichier `weekly_extraction.yml`**
+  - [x] Template complet créé (6 jobs : setup, extract, load, transform, validate, notify)
+  - [x] Cron schedule : Dimanches 2h UTC
+  - [x] Manual trigger : workflow_dispatch avec player_limit parameter
+
+- [x] **3.3 Commit et push workflow**
   ```bash
   git add .github/workflows/weekly_extraction.yml
   git commit -m "feat: add GitHub Actions weekly extraction workflow"
   git push origin main
   ```
+  - [x] Workflow prêt à être testé
 
-- [ ] **2.4 Test manuel du workflow**
-  - [ ] Aller sur : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions
-  - [ ] Cliquer "Weekly BF6 Meta Extraction"
-  - [ ] Cliquer "Run workflow" (bouton vert)
-  - [ ] Attendre 6-8 min
-  - [ ] ✅ Vérifier tous les jobs sont verts
+---
 
-- [ ] **2.5 Vérifier résultats**
-  - [ ] Télécharger artifacts (extraction-logs, ndjson-data, dbt-logs)
-  - [ ] Vérifier BigQuery tables (bronze_leaderboard, bronze_weapons)
+### 🎯 Jour 3 : Tests et Validation (À FAIRE)
+
+- [ ] **4.1 Configurer GitHub Secrets** (CRITIQUE - BLOQUANT)
+  - Fichier encodé disponible : `/tmp/github-actions-key-base64.txt`
+  - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/settings/secrets/actions
+  - Secrets requis :
+    - ✅ `GCP_PROJECT_ID` = `battlefield-meta-aggregator`
+    - ✅ `GCP_SERVICE_ACCOUNT_KEY` = <contenu du fichier /tmp/github-actions-key-base64.txt>
+
+- [ ] **4.2 Configurer Workflow Permissions** (CRITIQUE - BLOQUANT)
+  - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/settings/actions
+  - Settings :
+    - ✅ Read and write permissions
+    - ✅ Allow GitHub Actions to create PRs
   - [ ] Vérifier BigQuery tables Gold (gold_top_weapons_global)
   - [ ] Vérifier Dashboard Streamlit (date + top 3 armes)
 

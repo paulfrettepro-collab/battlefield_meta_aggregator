@@ -260,18 +260,22 @@ battlefield_meta_aggregator/
 
 ### 🚀 Phase 7 - GitHub Actions CI/CD (EN COURS)
 
-**Statut** : Jour 1/5 (2 nov 2025)
+**Statut** : Jour 2/5 (4 nov 2025) - Workflow créé ✅
 
-- [x] **7.1.1** Service Account GCP validé
-- [ ] **7.1.2** GitHub Secrets configurés (GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_KEY)
-- [ ] **7.1.3** Workflow `weekly_extraction.yml` créé
-- [ ] **7.1.4** Test manuel workflow réussi
+- [x] **7.1.1** Service Account GCP validé (1 nov)
+- [x] **7.1.2** Clé service account encodée en base64
+- [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC)
+- [ ] **7.1.4** GitHub Secrets configurés (ACTION MANUELLE REQUISE)
+- [ ] **7.1.5** Workflow permissions configurées (ACTION MANUELLE REQUISE)
+- [ ] **7.1.6** Test manuel workflow réussi
 - [ ] **7.2** Dashboard auto-sync (dashboard/ → root pages/)
 - [ ] **7.3** Tests CI/CD (pytest, linting, coverage)
 - [ ] **7.4** Monitoring & alertes (Slack, badges)
 - [ ] **7.5** Documentation opérationnelle (`docs/RUNBOOK.md`)
 
-**Timeline** : 5-7 jours (semaine du 2-8 nov 2025)
+**Timeline** : 5-7 jours (semaine du 1-8 nov 2025)
+
+**🔧 Action Immédiate** : Configurer GitHub Secrets → Voir [`docs/GITHUB_SECRETS_GUIDE.md`](docs/GITHUB_SECRETS_GUIDE.md)
 
 > 📖 Plan détaillé : [`docs/PHASE_7_CHECKLIST.md`](docs/PHASE_7_CHECKLIST.md)
 
