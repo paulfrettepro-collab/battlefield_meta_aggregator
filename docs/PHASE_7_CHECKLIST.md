@@ -95,16 +95,19 @@
 
 - [x] **4.3 Lancer premier test workflow** ✅
   - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions
-  - Workflow lancé : 4 nov 2025
-  - Status : 🟡 EN COURS
-    - ✅ Job 1: Setup Environment (COMPLÉTÉ)
-    - 🟡 Job 2: Extract Leaderboard & Weapons (EN COURS)
-    - ⏳ Job 3: Load to BigQuery (EN ATTENTE)
-    - ⏳ Job 4: DBT Transformations (EN ATTENTE)
-    - ⏳ Job 5: Validate Pipeline Output (EN ATTENTE)
-    - ⏳ Job 6: Send Notifications (EN ATTENTE)
-  - [ ] Vérifier BigQuery tables Gold (gold_top_weapons_global)
-  - [ ] Vérifier Dashboard Streamlit (date + top 3 armes)
+  - **Test 1** : 4 nov 2025 - ❌ ÉCHEC
+    - ✅ Job 1: Setup Environment (SUCCÈS)
+    - ❌ Job 2: Extract Leaderboard & Weapons (ÉCHEC - ModuleNotFoundError: bs4)
+    - ⏸️ Jobs 3-6 : Non exécutés
+    - 🔧 **CORRECTIF** : Ajout dépendances manquantes dans workflow
+      - `beautifulsoup4` (module bs4)
+      - `undetected-chromedriver` (anti-détection Selenium)
+      - `tqdm` (barre de progression)
+  - **Test 2** : 4 nov 2025 - 🟡 EN COURS
+    - [ ] Vérifier extraction complète (50 joueurs)
+    - [ ] Vérifier fichiers NDJSON créés
+    - [ ] Vérifier BigQuery tables Gold
+    - [ ] Vérifier Dashboard Streamlit mis à jour
 
 - [ ] **2.6 Debugging si échec**
   - [ ] Lire logs du job échoué

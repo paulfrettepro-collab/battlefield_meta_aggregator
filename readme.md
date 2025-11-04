@@ -260,18 +260,18 @@ battlefield_meta_aggregator/
 
 ### 🚀 Phase 7 - GitHub Actions CI/CD (EN COURS)
 
-**Statut** : Jour 3/5 (4 nov 2025) - Premier test workflow EN COURS 🟡
+**Statut** : Jour 3/5 (4 nov 2025) - Tests et debugging �
 
 - [x] **7.1.1** Service Account GCP validé (1 nov)
 - [x] **7.1.2** Clé service account encodée en base64 (4 nov)
 - [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC) (4 nov)
 - [x] **7.1.4** GitHub Secrets configurés ✅ (4 nov)
 - [x] **7.1.5** Workflow permissions configurées ✅ (4 nov)
-- [x] **7.1.6** Premier test workflow lancé 🟡 (4 nov - EN COURS)
-  - ✅ Job 1/6: Setup Environment (COMPLÉTÉ)
-  - 🟡 Job 2/6: Extract Leaderboard & Weapons (EN COURS ~4-5 min)
-  - ⏳ Jobs 3-6: En attente
-- [ ] **7.1.7** Analyser résultats + corriger erreurs éventuelles
+- [x] **7.1.6** Premiers tests workflow (4 nov)
+  - **Test 1** : ❌ ÉCHEC Job 2 - `ModuleNotFoundError: bs4`
+  - � **CORRECTIF** : Ajout dépendances (beautifulsoup4, undetected-chromedriver, tqdm)
+  - **Test 2** : 🟡 EN COURS (nouveau run après correctif)
+- [ ] **7.1.7** Validation workflow complet (6 jobs verts)
 - [ ] **7.2** Dashboard auto-sync (dashboard/ → root pages/)
 - [ ] **7.3** Tests CI/CD (pytest, linting, coverage)
 - [ ] **7.4** Monitoring & alertes (Slack, badges)
@@ -316,4 +316,4 @@ battlefield_meta_aggregator/
 
 ---
 
-**Dernière mise à jour** : 2 novembre 2025 — Phase 7 (GitHub Actions) Jour 1/5 ✅
+**Dernière mise à jour** : 4 novembre 2025 — Phase 7 Jour 3/5 - Debugging workflow 🔧

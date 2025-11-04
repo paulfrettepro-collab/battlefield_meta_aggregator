@@ -38,7 +38,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install google-cloud-bigquery pandas
     
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
@@ -78,7 +78,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install google-cloud-bigquery pandas selenium beautifulsoup4 undetected-chromedriver tqdm webdriver-manager
         # Install Chrome for Selenium
         sudo apt-get update
         sudo apt-get install -y chromium-browser chromium-chromedriver
