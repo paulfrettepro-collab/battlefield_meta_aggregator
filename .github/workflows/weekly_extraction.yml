@@ -78,7 +78,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install google-cloud-bigquery pandas selenium beautifulsoup4 undetected-chromedriver tqdm webdriver-manager
+        pip install setuptools google-cloud-bigquery pandas selenium beautifulsoup4 undetected-chromedriver tqdm webdriver-manager
         # Install Chrome for Selenium
         sudo apt-get update
         sudo apt-get install -y chromium-browser chromium-chromedriver
