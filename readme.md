@@ -260,17 +260,17 @@ battlefield_meta_aggregator/
 
 ### 🚀 Phase 7 - GitHub Actions CI/CD (EN COURS)
 
-**Statut** : Jour 3/5 (4 nov 2025) - Tests et debugging �
+**Statut** : Jour 3/5 (4 nov 2025) - Tests et debugging 🔧
 
 - [x] **7.1.1** Service Account GCP validé (1 nov)
 - [x] **7.1.2** Clé service account encodée en base64 (4 nov)
 - [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC) (4 nov)
 - [x] **7.1.4** GitHub Secrets configurés ✅ (4 nov)
 - [x] **7.1.5** Workflow permissions configurées ✅ (4 nov)
-- [x] **7.1.6** Premiers tests workflow (4 nov)
-  - **Test 1** : ❌ ÉCHEC Job 2 - `ModuleNotFoundError: bs4`
-  - � **CORRECTIF** : Ajout dépendances (beautifulsoup4, undetected-chromedriver, tqdm)
-  - **Test 2** : 🟡 EN COURS (nouveau run après correctif)
+- [x] **7.1.6** Tests workflow + corrections (4 nov)
+  - **Tests 1-3** : ❌ Erreurs dépendances + Chrome
+  - 🔧 **CORRECTIFS** : bs4, setuptools, Chrome headless, chemins fichiers, DBT profiles
+  - **Test 4** : 🟡 EN COURS (toutes corrections appliquées)
 - [ ] **7.1.7** Validation workflow complet (6 jobs verts)
 - [ ] **7.2** Dashboard auto-sync (dashboard/ → root pages/)
 - [ ] **7.3** Tests CI/CD (pytest, linting, coverage)
