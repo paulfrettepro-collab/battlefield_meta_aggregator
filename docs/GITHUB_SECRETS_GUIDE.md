@@ -8,8 +8,9 @@
 
 - [x] Clé service account encodée : `/tmp/github-actions-key-base64.txt` (3237 bytes)
 - [x] Workflow créé : `.github/workflows/weekly_extraction.yml`
-- [ ] Secrets GitHub configurés (À FAIRE)
-- [ ] Permissions workflow configurées (À FAIRE)
+- [x] Secrets GitHub configurés ✅ (4 nov 2025)
+- [x] Permissions workflow configurées ✅ (4 nov 2025)
+- [x] Premier test workflow lancé 🚀 (4 nov 2025 - EN COURS)
 
 ---
 

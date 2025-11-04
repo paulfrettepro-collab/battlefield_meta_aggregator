@@ -78,20 +78,31 @@
 
 ---
 
-### 🎯 Jour 3 : Tests et Validation (À FAIRE)
+### 🎯 Jour 3 : Tests et Validation (EN COURS - 4 nov 2025)
 
-- [ ] **4.1 Configurer GitHub Secrets** (CRITIQUE - BLOQUANT)
+- [x] **4.1 Configurer GitHub Secrets** ✅
   - Fichier encodé disponible : `/tmp/github-actions-key-base64.txt`
   - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/settings/secrets/actions
-  - Secrets requis :
+  - Secrets créés :
     - ✅ `GCP_PROJECT_ID` = `battlefield-meta-aggregator`
-    - ✅ `GCP_SERVICE_ACCOUNT_KEY` = <contenu du fichier /tmp/github-actions-key-base64.txt>
+    - ✅ `GCP_SERVICE_ACCOUNT_KEY` = <contenu encodé base64>
 
-- [ ] **4.2 Configurer Workflow Permissions** (CRITIQUE - BLOQUANT)
+- [x] **4.2 Configurer Workflow Permissions** ✅
   - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/settings/actions
-  - Settings :
+  - Settings configurés :
     - ✅ Read and write permissions
     - ✅ Allow GitHub Actions to create PRs
+
+- [x] **4.3 Lancer premier test workflow** ✅
+  - URL : https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions
+  - Workflow lancé : 4 nov 2025
+  - Status : 🟡 EN COURS
+    - ✅ Job 1: Setup Environment (COMPLÉTÉ)
+    - 🟡 Job 2: Extract Leaderboard & Weapons (EN COURS)
+    - ⏳ Job 3: Load to BigQuery (EN ATTENTE)
+    - ⏳ Job 4: DBT Transformations (EN ATTENTE)
+    - ⏳ Job 5: Validate Pipeline Output (EN ATTENTE)
+    - ⏳ Job 6: Send Notifications (EN ATTENTE)
   - [ ] Vérifier BigQuery tables Gold (gold_top_weapons_global)
   - [ ] Vérifier Dashboard Streamlit (date + top 3 armes)
 

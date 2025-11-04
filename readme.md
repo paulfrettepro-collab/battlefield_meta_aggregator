@@ -260,14 +260,18 @@ battlefield_meta_aggregator/
 
 ### 🚀 Phase 7 - GitHub Actions CI/CD (EN COURS)
 
-**Statut** : Jour 2/5 (4 nov 2025) - Workflow créé ✅
+**Statut** : Jour 3/5 (4 nov 2025) - Premier test workflow EN COURS 🟡
 
 - [x] **7.1.1** Service Account GCP validé (1 nov)
-- [x] **7.1.2** Clé service account encodée en base64
-- [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC)
-- [ ] **7.1.4** GitHub Secrets configurés (ACTION MANUELLE REQUISE)
-- [ ] **7.1.5** Workflow permissions configurées (ACTION MANUELLE REQUISE)
-- [ ] **7.1.6** Test manuel workflow réussi
+- [x] **7.1.2** Clé service account encodée en base64 (4 nov)
+- [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC) (4 nov)
+- [x] **7.1.4** GitHub Secrets configurés ✅ (4 nov)
+- [x] **7.1.5** Workflow permissions configurées ✅ (4 nov)
+- [x] **7.1.6** Premier test workflow lancé 🟡 (4 nov - EN COURS)
+  - ✅ Job 1/6: Setup Environment (COMPLÉTÉ)
+  - 🟡 Job 2/6: Extract Leaderboard & Weapons (EN COURS ~4-5 min)
+  - ⏳ Jobs 3-6: En attente
+- [ ] **7.1.7** Analyser résultats + corriger erreurs éventuelles
 - [ ] **7.2** Dashboard auto-sync (dashboard/ → root pages/)
 - [ ] **7.3** Tests CI/CD (pytest, linting, coverage)
 - [ ] **7.4** Monitoring & alertes (Slack, badges)
@@ -275,7 +279,7 @@ battlefield_meta_aggregator/
 
 **Timeline** : 5-7 jours (semaine du 1-8 nov 2025)
 
-**🔧 Action Immédiate** : Configurer GitHub Secrets → Voir [`docs/GITHUB_SECRETS_GUIDE.md`](docs/GITHUB_SECRETS_GUIDE.md)
+**🔧 En cours** : Premier test workflow → Voir résultats en direct sur [GitHub Actions](https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions)
 
 > 📖 Plan détaillé : [`docs/PHASE_7_CHECKLIST.md`](docs/PHASE_7_CHECKLIST.md)
 
