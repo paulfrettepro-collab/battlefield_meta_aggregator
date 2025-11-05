@@ -35,7 +35,7 @@ LEADERBOARD_DIR.mkdir(parents=True, exist_ok=True)
 WEAPONS_DIR.mkdir(parents=True, exist_ok=True)
 
 # URLs
-LEADERBOARD_URL = "https://tracker.gg/bf6/leaderboards?platform=all&board=Kills&page=1"
+LEADERBOARD_URL = "https://tracker.gg/bf6/leaderboards?platform=all&board=PlayerKills&page=1"
 # Format correct : /bf6/profile/{ID} sans le handle (comme les liens du leaderboard)
 PLAYER_WEAPONS_URL = "https://tracker.gg/bf6/profile/{player_id}/weapons"
 

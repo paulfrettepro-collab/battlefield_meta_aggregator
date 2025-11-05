@@ -11,3 +11,6 @@ Approche directe par joueur avec filtre kills DESC
 Implémentation de rank() OVER(PARTITION BY player_id ORDER BY kills DESC)
 
 TODO : Créer section centralisée des liens projet (BigQuery, Streamlit, GitHub, docs)
+
+05.11.2025 : 
+Comment vérifier que mon tableau streamlit est bien à jour par rapport à bigquery ? car par rapport au site tracker GG les résultats sont différents.
