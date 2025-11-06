@@ -74,20 +74,23 @@ def get_driver():
     
     # Mode CI/CD : GitHub Actions
     if os.getenv('GITHUB_ACTIONS') == 'true':
-        # IMPORTANT: NE PAS utiliser --headless=new, Cloudflare le détecte !
-        # On utilise headless=True dans uc.Chrome() à la place
+        # STRATÉGIE XVFB : Utiliser un display virtuel au lieu de headless pur
+        # Cloudflare détecte moins facilement un vrai navigateur avec display
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--disable-web-security')  # Aide avec certains challenges
         options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        logger.info("🤖 Mode CI/CD détecté - Chrome headless avec bypass Cloudflare")
         
-        # Créer driver avec headless natif d'undetected-chromedriver
+        # Vérifier si Xvfb est actif (DISPLAY devrait être :99)
+        display = os.getenv('DISPLAY', ':0')
+        logger.info(f"🤖 Mode CI/CD détecté - Chrome avec display virtuel {display}")
+        
+        # NE PAS utiliser headless=True ! On veut un vrai display virtuel
         driver = uc.Chrome(
             options=options,
-            headless=True,  # Headless mode natif UC (bypass Cloudflare)
             version_main=None,
             use_subprocess=True  # Important pour CI/CD
         )
@@ -122,18 +125,21 @@ def extract_current_leaderboard(driver, max_players=50):
         driver.get(LEADERBOARD_URL)
         
         # Attendre que Cloudflare Challenge soit passé + page JS chargée
-        logger.info("⏳ Attente bypass Cloudflare + chargement JS (15s)...")
-        time.sleep(15)
+        # En CI/CD avec xvfb, on augmente le timeout pour plus de sécurité
+        import os
+        wait_time = 20 if os.getenv('GITHUB_ACTIONS') == 'true' else 15
+        logger.info(f"⏳ Attente bypass Cloudflare + chargement JS ({wait_time}s)...")
+        time.sleep(wait_time)
         
         # Vérifier Cloudflare challenge
         html = driver.page_source
         if "Just a moment" in html or "Verify you are human" in html:
-            logger.warning("⚠️ Cloudflare challenge détecté, attente supplémentaire 20s...")
-            time.sleep(20)
+            logger.warning("⚠️ Cloudflare challenge détecté, attente supplémentaire 25s...")
+            time.sleep(25)
             html = driver.page_source
             
             if "Just a moment" in html:
-                logger.error("❌ ERREUR: Cloudflare challenge non résolu après 35s")
+                logger.error(f"❌ ERREUR: Cloudflare challenge non résolu après {wait_time + 25}s")
                 logger.error("💡 Le bypass Cloudflare a échoué - essayez de relancer")
                 return []
         

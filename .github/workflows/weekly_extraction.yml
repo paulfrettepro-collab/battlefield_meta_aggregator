@@ -90,8 +90,19 @@ jobs:
         which google-chrome || which google-chrome-stable || which chromium-browser
         google-chrome --version || google-chrome-stable --version || chromium-browser --version
     
+    - name: Install and start Xvfb (virtual display)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        # Démarrer Xvfb sur display :99
+        sudo Xvfb :99 -ac -screen 0 1920x1080x24 &
+        sleep 2
+        echo "✅ Xvfb démarré sur DISPLAY=:99"
+    
     - name: Run extraction script
       id: extraction
+      env:
+        DISPLAY: ':99'  # Utiliser le display virtuel
       run: |
         python scripts/extract_bf6_meta_complete.py
         
