@@ -121,23 +121,36 @@ def extract_current_leaderboard(driver, max_players=50):
     try:
         driver.get(LEADERBOARD_URL)
         
-        # Attendre que Cloudflare Challenge soit passé
-        logger.info("⏳ Attente bypass Cloudflare (30s)...")
-        time.sleep(30)  # Augmenté pour laisser le temps au bypass
+        # Attendre que Cloudflare Challenge soit passé + page JS chargée
+        logger.info("⏳ Attente bypass Cloudflare + chargement JS (15s)...")
+        time.sleep(15)
         
-        # Vérifier si Cloudflare challenge est encore présent
+        # Vérifier Cloudflare challenge
         html = driver.page_source
         if "Just a moment" in html or "Verify you are human" in html:
-            logger.warning("⚠️ Cloudflare challenge détecté, attente supplémentaire 30s...")
-            time.sleep(30)
+            logger.warning("⚠️ Cloudflare challenge détecté, attente supplémentaire 20s...")
+            time.sleep(20)
             html = driver.page_source
             
             if "Just a moment" in html:
-                logger.error("❌ ERREUR: Cloudflare challenge non résolu après 60s")
+                logger.error("❌ ERREUR: Cloudflare challenge non résolu après 35s")
                 logger.error("💡 Le bypass Cloudflare a échoué - essayez de relancer")
                 return []
         
-        # Parser HTML
+        # IMPORTANT: Le site charge les données via JavaScript (SPA)
+        # Attendre que le tableau soit visible
+        logger.info("⏳ Attente chargement tableau JavaScript (20s)...")
+        time.sleep(20)
+        
+        # Scroller pour forcer le chargement des données
+        logger.info("📜 Scroll page pour déclencher chargement lazy loading...")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(3)
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(2)
+        
+        # Récupérer HTML final
+        html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
         
         # DEBUG: Sauvegarder HTML pour inspection
@@ -148,6 +161,20 @@ def extract_current_leaderboard(driver, max_players=50):
         # Chercher les lignes du leaderboard
         player_rows = soup.find_all('tr', {'data-key': lambda x: x and x.isdigit()})
         logger.info(f"🔍 {len(player_rows)} joueurs trouvés dans le tableau")
+        
+        # DEBUG: Afficher les 5 premiers data-key pour diagnostic
+        if player_rows:
+            logger.info("🔎 DEBUG - Premiers data-key trouvés:")
+            for i, row in enumerate(player_rows[:5]):
+                data_key = row.get('data-key', 'N/A')
+                logger.info(f"  Row {i+1}: data-key = {data_key}")
+        else:
+            logger.warning("⚠️ AUCUN <tr data-key> trouvé ! Structure HTML différente ?")
+            # DEBUG: Chercher tous les <tr> pour voir ce qui existe
+            all_rows = soup.find_all('tr')
+            logger.info(f"🔎 Total <tr> dans la page: {len(all_rows)}")
+            if all_rows:
+                logger.info(f"🔎 Premier <tr> HTML: {str(all_rows[0])[:200]}")
         
         players = []
         for row in player_rows:
@@ -160,11 +187,15 @@ def extract_current_leaderboard(driver, max_players=50):
                 if len(cells) < 5:
                     continue
                 
-                # Rank
+                # Rank - Deux structures possibles
                 rank_span = cells[0].find('span', class_=lambda x: x and 'min-w-9' in x if x else False)
-                if not rank_span:
-                    continue
-                rank = int(rank_span.get_text(strip=True))
+                if rank_span:
+                    # Structure normale (rangs 4+)
+                    rank = int(rank_span.get_text(strip=True))
+                else:
+                    # Structure podium (rangs 1-3) : utiliser data-key
+                    rank = int(row.get('data-key'))
+                    logger.debug(f"  Rang {rank} : structure podium détectée (pas de span min-w-9)")
                 
                 # Player link (handle + player_id)
                 player_link = cells[1].find('a', href=lambda x: x and '/bf6/profile/' in x if x else False)
