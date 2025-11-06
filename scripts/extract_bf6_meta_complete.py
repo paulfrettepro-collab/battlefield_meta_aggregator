@@ -35,7 +35,7 @@ LEADERBOARD_DIR.mkdir(parents=True, exist_ok=True)
 WEAPONS_DIR.mkdir(parents=True, exist_ok=True)
 
 # URLs
-LEADERBOARD_URL = "https://tracker.gg/bf6/leaderboards?platform=all&board=PlayerKills&page=1"
+LEADERBOARD_URL = "https://tracker.gg/bf6/leaderboards?platform=all&board=Kills&page=1"
 # Format correct : /bf6/profile/{ID} sans le handle (comme les liens du leaderboard)
 PLAYER_WEAPONS_URL = "https://tracker.gg/bf6/profile/{player_id}/weapons"
 
@@ -67,27 +67,38 @@ class ExtractionCheckpoint:
 
 
 def get_driver():
-    """Créer un driver Chrome non détecté"""
+    """Créer un driver Chrome non détecté avec bypass Cloudflare"""
     import os
     
     options = uc.ChromeOptions()
     
-    # Mode CI/CD : GitHub Actions nécessite headless
+    # Mode CI/CD : GitHub Actions
     if os.getenv('GITHUB_ACTIONS') == 'true':
-        options.add_argument('--headless=new')
+        # IMPORTANT: NE PAS utiliser --headless=new, Cloudflare le détecte !
+        # On utilise headless=True dans uc.Chrome() à la place
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--window-size=1920,1080')
-        logger.info("🤖 Mode CI/CD détecté - Chrome en mode headless")
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        logger.info("🤖 Mode CI/CD détecté - Chrome headless avec bypass Cloudflare")
+        
+        # Créer driver avec headless natif d'undetected-chromedriver
+        driver = uc.Chrome(
+            options=options,
+            headless=True,  # Headless mode natif UC (bypass Cloudflare)
+            version_main=None,
+            use_subprocess=True  # Important pour CI/CD
+        )
     else:
         logger.info("💻 Mode local - Chrome avec interface graphique")
+        driver = uc.Chrome(
+            options=options,
+            version_main=None,
+            driver_executable_path=None
+        )
     
-    driver = uc.Chrome(
-        options=options,
-        version_main=None,  # Auto-detect version
-        driver_executable_path=None
-    )
     return driver
 
 
@@ -110,12 +121,23 @@ def extract_current_leaderboard(driver, max_players=50):
     try:
         driver.get(LEADERBOARD_URL)
         
-        # Attendre le chargement
-        logger.info("⏳ Attente chargement page (20s)...")
-        time.sleep(20)
+        # Attendre que Cloudflare Challenge soit passé
+        logger.info("⏳ Attente bypass Cloudflare (30s)...")
+        time.sleep(30)  # Augmenté pour laisser le temps au bypass
+        
+        # Vérifier si Cloudflare challenge est encore présent
+        html = driver.page_source
+        if "Just a moment" in html or "Verify you are human" in html:
+            logger.warning("⚠️ Cloudflare challenge détecté, attente supplémentaire 30s...")
+            time.sleep(30)
+            html = driver.page_source
+            
+            if "Just a moment" in html:
+                logger.error("❌ ERREUR: Cloudflare challenge non résolu après 60s")
+                logger.error("💡 Le bypass Cloudflare a échoué - essayez de relancer")
+                return []
         
         # Parser HTML
-        html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
         
         # DEBUG: Sauvegarder HTML pour inspection
