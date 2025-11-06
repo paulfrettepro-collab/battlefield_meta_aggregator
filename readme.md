@@ -4,8 +4,25 @@
 [![DBT](https://img.shields.io/badge/DBT-1.11.0-orange.svg)](https://www.getdbt.com/)
 [![BigQuery](https://img.shields.io/badge/BigQuery-Active-blue.svg)](https://cloud.google.com/bigquery)
 [![Dashboard](https://img.shields.io/badge/Dashboard-Live-success.svg)](https://battlefieldmetaaggregator.streamlit.app)
+[![Pipeline](https://img.shields.io/badge/Pipeline-v4%20Xvfb-yellow.svg)](#)
 
 > **Pipeline ELT hebdomadaire pour analyser le méta Battlefield 6 via web scraping, BigQuery et DBT**
+
+---
+
+## 🚨 STATUS ACTUEL (6 nov 2025)
+
+**🔧 VERSION 4 (Xvfb) - EN TEST**
+
+**Problème résolu** : Rangs 1-3 manquants + détection Cloudflare en CI/CD  
+**Solution implémentée** :
+- ✅ Parser structure HTML podium (commit 66c6df6)
+- ✅ Xvfb display virtuel au lieu de headless (commit a7a21b4)
+- ✅ Scripts validation automatiques (commit ca242af)
+
+**Prochaine étape** : Workflow v4 à déclencher manuellement → Validation complète
+
+📖 Voir [MONITORING_V4.md](MONITORING_V4.md) pour checklist détaillée
 
 ---
 
@@ -17,8 +34,6 @@ Ce projet extrait chaque semaine les **top 50 joueurs** de Tracker.gg, récupèr
 **Fréquence** : Extraction automatique chaque dimanche 2h UTC  
 **Coût** : ~0€/mois (BigQuery free tier + Streamlit Cloud gratuit + GitHub Actions)  
 **Output** : 6 tables transformées (`gold_top_weapons_global`, `gold_player_performance`, etc.) + dashboard public
-
-**Dernière extraction** : 30 octobre 2025 — 50 joueurs, 150 armes (Top 3 : SG 553R, TR-7, M4A1)
 
 ---
 
