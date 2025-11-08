@@ -204,3 +204,18 @@ Prompt_engineering.md
 archive/            # Anciens scripts et données (pas besoin de versionner)
 ai/                 # Notes de collaboration avec l'IA (mémoire vivante)
 
+
+# ============================================
+# 14. GITHUB ACTIONS ARTIFACTS (LOCAL)
+# ============================================
+# Artifacts téléchargés depuis GitHub Actions (debug uniquement)
+git_hub_action_artifacts/
+
+# Fichiers debug HTML (générés par extraction)
+*_debug_*.html
+data/bronze/**/*_debug_*.html
+
+# Checkpoints extraction (fichiers temporaires)
+.checkpoint_*.json
+data/bronze/**/.checkpoint_*.json
+

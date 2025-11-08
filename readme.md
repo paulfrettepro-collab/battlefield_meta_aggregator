@@ -10,19 +10,23 @@
 
 ---
 
-## 🚨 STATUS ACTUEL (6 nov 2025)
+## 🚨 STATUS ACTUEL (8 nov 2025)
 
-**🔧 VERSION 4 (Xvfb) - EN TEST**
+**✅ VERSION 4 (Xvfb) - OPÉRATIONNEL**
 
-**Problème résolu** : Rangs 1-3 manquants + détection Cloudflare en CI/CD  
-**Solution implémentée** :
-- ✅ Parser structure HTML podium (commit 66c6df6)
-- ✅ Xvfb display virtuel au lieu de headless (commit a7a21b4)
-- ✅ Scripts validation automatiques (commit ca242af)
+**Problèmes résolus** :
+- ✅ Rangs 1-3 manquants (structure HTML podium)
+- ✅ Détection Cloudflare en CI/CD (Xvfb display virtuel)
+- ✅ Accumulation données BigQuery (cleanup avant load)
 
-**Prochaine étape** : Workflow v4 à déclencher manuellement → Validation complète
+**Commits clés** :
+- `66c6df6` - Parser podium (fallback data-key)
+- `a7a21b4` - Xvfb bypass Cloudflare
+- `ab35b0a` - Cleanup BigQuery (garde 3 dernières extractions)
 
-📖 Voir [MONITORING_V4.md](MONITORING_V4.md) pour checklist détaillée
+**Pipeline stable** : Extraction hebdomadaire automatique (dimanche 3h Paris)
+
+📖 Documentation complète : [MONITORING_V4.md](MONITORING_V4.md) | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ---
 
@@ -31,9 +35,9 @@
 Ce projet extrait chaque semaine les **top 50 joueurs** de Tracker.gg, récupère leurs **3 meilleures armes** (nom, kills), puis transforme ces données en tables analytiques via DBT. Le tout est orchestré par **GitHub Actions** (gratuit, 2000 min/mois) et publié sur un dashboard Streamlit.
 
 **Pipeline** : `Tracker.gg` → `Selenium/Python` → `BigQuery Bronze` → `DBT (Silver/Gold)` → `Streamlit Cloud`  
-**Fréquence** : Extraction automatique chaque dimanche 2h UTC  
-**Coût** : ~0€/mois (BigQuery free tier + Streamlit Cloud gratuit + GitHub Actions)  
-**Output** : 6 tables transformées (`gold_top_weapons_global`, `gold_player_performance`, etc.) + dashboard public
+**Fréquence** : Extraction automatique chaque **dimanche 3h** (heure de Paris)  
+**Coût** : **0€/mois** (100% free tier : BigQuery < 1% quota + Streamlit gratuit + GitHub Actions 2000 min)  
+**Output** : 6 tables Gold transformées + dashboard public en temps réel
 
 ---
 
@@ -242,7 +246,7 @@ battlefield_meta_aggregator/
 | **Warehouse**   | Google BigQuery                | Tables Bronze, Silver, Gold                |
 | **Transform**   | DBT Core 1.11                  | SQL transformations + tests qualité        |
 | **Dashboard**   | Streamlit Cloud                | Visualisation interactive (Plotly)         |
-| **Orchestration** | GitHub Actions                | Cron hebdomadaire (dimanche 2h UTC)        |
+| **Orchestration** | GitHub Actions                | Cron hebdomadaire (dimanche 3h Paris)      |
 | **CI/CD**       | GitHub Actions                 | Auto-deploy dashboard + tests              |
 
 ---
@@ -273,35 +277,26 @@ battlefield_meta_aggregator/
 - **Phase 5** : Optimisation extraction (50 joueurs, 100% succès)
 - **Phase 6** : Script pipeline end-to-end (`run_pipeline.sh`)
 
-### 🚀 Phase 7 - GitHub Actions CI/CD ✅ RÉUSSI !
+### 🚀 Pipeline CI/CD - GitHub Actions ✅
 
-**Statut** : 🎉 **WORKFLOW OPÉRATIONNEL** (5 nov 2025) - Premier run complet réussi !
+**Statut** : 🎉 **PRODUCTION** (8 nov 2025)
 
-**Résultats du workflow** :
-- ✅ **50 joueurs** extraits + **50 armes** (top 3 par joueur)
-- ✅ **BigQuery** : bronze → silver → gold tables créées
-- ✅ **DBT** : 43/45 tests passés (2 warnings doublons acceptables)
-- ✅ **Top 3 armes** : SG 553R, TR-7, M4A1
-- ⏱️ **Durée** : ~6-8 minutes
+**Workflow stable v4** :
+- ✅ **Extraction** : 50 joueurs + top 3 armes (rangs 1-50 complets)
+- ✅ **BigQuery** : Cleanup automatique (garde 3 dernières extractions)
+- ✅ **DBT** : Transformations Bronze → Silver → Gold
+- ✅ **Dashboard** : Mise à jour automatique post-workflow
+- ⏱️ **Durée** : 6-8 minutes
 
-**Progression** :
-- [x] **7.1.1** Service Account GCP validé (1 nov)
-- [x] **7.1.2** Clé service account encodée base64 (4 nov)
-- [x] **7.1.3** Workflow `weekly_extraction.yml` créé (6 jobs, cron dimanche 2h UTC)
-- [x] **7.1.4** GitHub Secrets configurés ✅
-- [x] **7.1.5** Workflow permissions configurées ✅
-- [x] **7.1.6** Tests + debugging (8 commits de corrections)
-- [x] **7.1.7** ✅ **WORKFLOW VALIDÉ** - Tous jobs verts ! 🎊
-- [ ] **7.2** Dashboard auto-sync (dashboard/ → root pages/)
-- [ ] **7.3** Tests CI/CD (pytest, linting, coverage)
-- [ ] **7.4** Monitoring & alertes (Slack, badges)
-- [ ] **7.5** Documentation opérationnelle (`docs/RUNBOOK.md`)
+**Améliorations v4** (nov 2025) :
+- ✅ **Cloudflare bypass** : Xvfb display virtuel (100% succès CI/CD)
+- ✅ **Parser podium** : Rangs 1-3 extraits correctement (fallback data-key)
+- ✅ **Data cleanup** : Suppression anciennes données avant chargement
+- ✅ **Validation auto** : Scripts bash + Python pour vérifier extraction
 
-**Timeline** : 5-7 jours (semaine du 1-8 nov 2025)
+**Monitoring** : [GitHub Actions Workflows](https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions)
 
-**✅ Workflow actif** : Extraction automatique tous les dimanches 2h UTC → [GitHub Actions](https://github.com/paulfrettepro-collab/battlefield_meta_aggregator/actions)
-
-> 📖 Plan détaillé : [`docs/PHASE_7_CHECKLIST.md`](docs/PHASE_7_CHECKLIST.md)
+> 📖 Documentation : [`MONITORING_V4.md`](MONITORING_V4.md) | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 
 ### 🔮 Futures Améliorations (V2)
 
