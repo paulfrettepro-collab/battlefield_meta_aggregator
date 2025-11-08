@@ -80,6 +80,26 @@ leaderboard_schema = [
 # Table cible
 table_id = f"{PROJECT_ID}.{DATASET_ID}.bronze_leaderboard"
 
+# IMPORTANT: Supprimer les anciennes données AVANT de charger les nouvelles
+# Pour éviter les doublons et garder seulement les 3 dernières extractions
+print("🗑️  Nettoyage données anciennes (garde 3 dernières extractions)...")
+cleanup_query = f"""
+DELETE FROM `{table_id}`
+WHERE DATE(extraction_date) NOT IN (
+    SELECT DATE(extraction_date) as ext_date
+    FROM `{table_id}`
+    GROUP BY ext_date
+    ORDER BY ext_date DESC
+    LIMIT 3
+)
+"""
+try:
+    cleanup_job = client.query(cleanup_query)
+    cleanup_job.result()
+    print(f"✅ Nettoyage effectué")
+except Exception as e:
+    print(f"⚠️  Nettoyage ignoré (table peut être vide): {e}")
+
 # Configuration du job
 job_config = bigquery.LoadJobConfig(
     source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
@@ -175,6 +195,25 @@ weapons_schema = [
 
 # Table cible
 table_id = f"{PROJECT_ID}.{DATASET_ID}.bronze_weapons"
+
+# IMPORTANT: Supprimer les anciennes données AVANT de charger les nouvelles
+print("🗑️  Nettoyage données anciennes (garde 3 dernières extractions)...")
+cleanup_query = f"""
+DELETE FROM `{table_id}`
+WHERE DATE(extraction_date) NOT IN (
+    SELECT DATE(extraction_date) as ext_date
+    FROM `{table_id}`
+    GROUP BY ext_date
+    ORDER BY ext_date DESC
+    LIMIT 3
+)
+"""
+try:
+    cleanup_job = client.query(cleanup_query)
+    cleanup_job.result()
+    print(f"✅ Nettoyage effectué")
+except Exception as e:
+    print(f"⚠️  Nettoyage ignoré (table peut être vide): {e}")
 
 # Configuration du job
 job_config = bigquery.LoadJobConfig(
