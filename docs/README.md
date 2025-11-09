@@ -10,97 +10,128 @@ Bienvenue dans la documentation du projet **Battlefield Meta Aggregator** !
 
 1. 📖 [README principal](../readme.md) - Vue d'ensemble du projet
 2. 🔐 [SECURITY.md](../SECURITY.md) - Politique de sécurité (credentials)
-3. ⚙️ [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) - Configuration CI/CD
+3. ⚙️ [Configuration GitHub Actions](setup/GITHUB_ACTIONS_SETUP.md) - Setup CI/CD
 
 ---
 
-## 📂 Documentation par Thème
+## 📂 Structure Documentation
 
-### 🏗️ Architecture & Concepts
-
-| Document | Description |
-|----------|-------------|
-| [GUIDE_TECHNIQUE_COMPLET.md](GUIDE_TECHNIQUE_COMPLET.md) | Architecture complète du pipeline ELT |
-| [DBT_BIGQUERY_EXPLAINED.md](DBT_BIGQUERY_EXPLAINED.md) | Modèles DBT et transformations SQL |
-| [SOLUTION_ANALYSIS.md](SOLUTION_ANALYSIS.md) | Analyse comparative des solutions (Xvfb vs Playwright) |
-
-### ⚙️ Configuration & Setup
-
-| Document | Description |
-|----------|-------------|
-| [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md) | Configurer GitHub Actions workflow |
-| [GITHUB_SECRETS_GUIDE.md](GITHUB_SECRETS_GUIDE.md) | Encoder et configurer secrets GCP |
-| [BIGQUERY_GUIDE.md](BIGQUERY_GUIDE.md) | Setup BigQuery, tables, permissions |
-| [STREAMLIT_CLOUD_DEPLOY.md](STREAMLIT_CLOUD_DEPLOY.md) | Déployer dashboard sur Streamlit Cloud |
-
-### 🐛 Debugging & Troubleshooting
-
-| Document | Description |
-|----------|-------------|
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Guide de dépannage (5 scénarios communs) |
-| [CLOUDFLARE_BYPASS.md](CLOUDFLARE_BYPASS.md) | Contourner détection Cloudflare (Xvfb, Playwright) |
-| [STREAMLIT_TROUBLESHOOTING.md](STREAMLIT_TROUBLESHOOTING.md) | Résoudre erreurs dashboard |
-
-### 📊 Dashboard & Visualisation
-
-| Document | Description |
-|----------|-------------|
-| [STREAMLIT_GUIDE.md](STREAMLIT_GUIDE.md) | Créer et structurer pages Streamlit |
-| [STREAMLIT_CLOUD_DEPLOY.md](STREAMLIT_CLOUD_DEPLOY.md) | Déploiement production |
-
-### 🛠️ Développement
-
-| Document | Description |
-|----------|-------------|
-| [CLI_GIT_GUIDE.md](CLI_GIT_GUIDE.md) | Commandes Git + symboles VS Code |
-| [CODEBASE_CLEANUP.md](CODEBASE_CLEANUP.md) | Refactoring et nettoyage code |
-| [Prompt_engineering.md](Prompt_engineering.md) | Collaboration avec IA (historique prompts) |
-
-### 📋 Gestion de Projet
-
-| Document | Description |
-|----------|-------------|
-| [PHASE_7_CHECKLIST.md](PHASE_7_CHECKLIST.md) | Checklist Phase 7 (GitHub Actions CI/CD) |
-| [../MONITORING_V4.md](../MONITORING_V4.md) | Monitoring workflow v4 (Xvfb) |
-| [../ACTION_PLAN.md](../ACTION_PLAN.md) | Plan d'action validation v4 |
+```
+docs/
+├── README.md                    # ← Vous êtes ici (index)
+├── guides/                      # 📖 Guides techniques détaillés
+├── setup/                       # ⚙️ Configuration et installation
+├── troubleshooting/             # 🐛 Résolution de problèmes
+├── dev/                         # 🛠️ Développement et Git
+├── project/                     # 📋 Gestion de projet
+└── archive/                     # 📦 Fichiers historiques
+```
 
 ---
 
-## 🔍 Trouver la Bonne Documentation
+## 📖 Guides Techniques
+
+**Architecture et concepts fondamentaux**
+
+| Document | Description |
+|----------|-------------|
+| [guides/GUIDE_TECHNIQUE_COMPLET.md](guides/GUIDE_TECHNIQUE_COMPLET.md) | Architecture complète du pipeline ELT |
+| [guides/DBT_BIGQUERY_EXPLAINED.md](guides/DBT_BIGQUERY_EXPLAINED.md) | Modèles DBT et transformations SQL |
+| [guides/BIGQUERY_GUIDE.md](guides/BIGQUERY_GUIDE.md) | Setup BigQuery, tables, permissions |
+| [guides/STREAMLIT_GUIDE.md](guides/STREAMLIT_GUIDE.md) | Créer et structurer pages Streamlit |
+| [guides/STREAMLIT_CLOUD_DEPLOY.md](guides/STREAMLIT_CLOUD_DEPLOY.md) | Déployer dashboard sur Streamlit Cloud |
+
+---
+
+## ⚙️ Configuration & Setup
+
+**Installation et configuration initiale**
+
+| Document | Description |
+|----------|-------------|
+| [setup/GITHUB_ACTIONS_SETUP.md](setup/GITHUB_ACTIONS_SETUP.md) | Configurer GitHub Actions workflow |
+| [setup/GITHUB_SECRETS_GUIDE.md](setup/GITHUB_SECRETS_GUIDE.md) | Encoder et configurer secrets GCP |
+
+---
+
+## 🐛 Troubleshooting
+
+**Résolution de problèmes et debugging**
+
+| Document | Description |
+|----------|-------------|
+| [troubleshooting/TROUBLESHOOTING.md](troubleshooting/TROUBLESHOOTING.md) | Guide de dépannage (5 scénarios communs) |
+| [troubleshooting/CLOUDFLARE_BYPASS.md](troubleshooting/CLOUDFLARE_BYPASS.md) | Contourner détection Cloudflare (Xvfb, Playwright) |
+| [troubleshooting/STREAMLIT_TROUBLESHOOTING.md](troubleshooting/STREAMLIT_TROUBLESHOOTING.md) | Résoudre erreurs dashboard |
+| [troubleshooting/SOLUTION_ANALYSIS.md](troubleshooting/SOLUTION_ANALYSIS.md) | Analyse comparative solutions (Xvfb vs Playwright) |
+
+---
+
+## 🛠️ Développement
+
+**Outils et workflows de développement**
+
+| Document | Description |
+|----------|-------------|
+| [dev/CLI_GIT_GUIDE.md](dev/CLI_GIT_GUIDE.md) | Commandes Git + symboles VS Code |
+| [dev/CODEBASE_CLEANUP.md](dev/CODEBASE_CLEANUP.md) | Refactoring et nettoyage code |
+| [dev/PHASE_7_CHECKLIST.md](dev/PHASE_7_CHECKLIST.md) | Checklist Phase 7 (GitHub Actions CI/CD) |
+| [dev/Prompt_engineering.md](dev/Prompt_engineering.md) | Collaboration avec IA (historique prompts) |
+
+---
+
+## 📋 Gestion de Projet
+
+**Suivi et planification**
+
+| Document | Description |
+|----------|-------------|
+| [project/PROJECT_OVERVIEW.md](project/PROJECT_OVERVIEW.md) | Vision et objectifs du projet |
+| [project/MONITORING_V4.md](project/MONITORING_V4.md) | Monitoring workflow v4 (Xvfb) |
+| [project/ACTION_PLAN.md](project/ACTION_PLAN.md) | Plan d'action validation v4 |
+| [project/SESSION_SUMMARY.md](project/SESSION_SUMMARY.md) | Récapitulatif des sessions de travail |
+| [project/CHECKLIST_REPO_PUBLIC.md](project/CHECKLIST_REPO_PUBLIC.md) | Checklist préparation repo public |
+
+---
+
+## � Archive
+
+**Fichiers historiques (référence uniquement)**
+
+| Document | Description |
+|----------|-------------|
+| [archive/readme_OLD.md](archive/readme_OLD.md) | Ancienne version README |
+| [archive/DASHBOARD_UPDATE_31OCT2025.md](archive/DASHBOARD_UPDATE_31OCT2025.md) | Mise à jour dashboard 31 oct |
+| [archive/AUTOMATION_GUIDE.md](archive/AUTOMATION_GUIDE.md) | Guide automatisation (remplacé par GitHub Actions) |
+| [archive/Idées.md](archive/Idées.md) | Brainstorming initial |
+
+---
+
+## 🔍 Navigation Rapide
 
 **Je veux...**
 
-- **Comprendre l'architecture** → [GUIDE_TECHNIQUE_COMPLET.md](GUIDE_TECHNIQUE_COMPLET.md)
-- **Configurer GitHub Actions** → [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
-- **Résoudre une erreur** → [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- **Déployer le dashboard** → [STREAMLIT_CLOUD_DEPLOY.md](STREAMLIT_CLOUD_DEPLOY.md)
-- **Comprendre DBT** → [DBT_BIGQUERY_EXPLAINED.md](DBT_BIGQUERY_EXPLAINED.md)
-- **Bypass Cloudflare** → [CLOUDFLARE_BYPASS.md](CLOUDFLARE_BYPASS.md)
-- **Sécuriser credentials** → [../SECURITY.md](../SECURITY.md)
-
----
-
-## 📝 Fichiers Racine du Projet
-
-| Fichier | Description |
-|---------|-------------|
-| [readme.md](../readme.md) | Documentation principale (architecture, démarrage rapide) |
-| [SECURITY.md](../SECURITY.md) | Politique sécurité (gitignore, secrets) |
-| [MONITORING_V4.md](../MONITORING_V4.md) | Checklist monitoring workflow v4 |
-| [ACTION_PLAN.md](../ACTION_PLAN.md) | Plan validation extraction v4 |
-| [NEXT_STEPS.md](../NEXT_STEPS.md) | Roadmap futures améliorations |
-| [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | Vision et objectifs du projet |
+| Besoin | Document |
+|--------|----------|
+| 📖 **Comprendre l'architecture** | [guides/GUIDE_TECHNIQUE_COMPLET.md](guides/GUIDE_TECHNIQUE_COMPLET.md) |
+| ⚙️ **Configurer GitHub Actions** | [setup/GITHUB_ACTIONS_SETUP.md](setup/GITHUB_ACTIONS_SETUP.md) |
+| 🐛 **Résoudre une erreur** | [troubleshooting/TROUBLESHOOTING.md](troubleshooting/TROUBLESHOOTING.md) |
+| 🚀 **Déployer le dashboard** | [guides/STREAMLIT_CLOUD_DEPLOY.md](guides/STREAMLIT_CLOUD_DEPLOY.md) |
+| 📊 **Comprendre DBT** | [guides/DBT_BIGQUERY_EXPLAINED.md](guides/DBT_BIGQUERY_EXPLAINED.md) |
+| 🛡️ **Bypass Cloudflare** | [troubleshooting/CLOUDFLARE_BYPASS.md](troubleshooting/CLOUDFLARE_BYPASS.md) |
+| 🔐 **Sécuriser credentials** | [../SECURITY.md](../SECURITY.md) |
+| � **Suivre le projet** | [project/MONITORING_V4.md](project/MONITORING_V4.md) |
 
 ---
 
 ## 🏷️ Tags par Technologie
 
-- **Python** : [GUIDE_TECHNIQUE_COMPLET.md](GUIDE_TECHNIQUE_COMPLET.md), [CLOUDFLARE_BYPASS.md](CLOUDFLARE_BYPASS.md)
-- **BigQuery** : [BIGQUERY_GUIDE.md](BIGQUERY_GUIDE.md), [DBT_BIGQUERY_EXPLAINED.md](DBT_BIGQUERY_EXPLAINED.md)
-- **DBT** : [DBT_BIGQUERY_EXPLAINED.md](DBT_BIGQUERY_EXPLAINED.md)
-- **GitHub Actions** : [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md), [GITHUB_SECRETS_GUIDE.md](GITHUB_SECRETS_GUIDE.md)
-- **Streamlit** : [STREAMLIT_GUIDE.md](STREAMLIT_GUIDE.md), [STREAMLIT_CLOUD_DEPLOY.md](STREAMLIT_CLOUD_DEPLOY.md)
-- **Selenium** : [CLOUDFLARE_BYPASS.md](CLOUDFLARE_BYPASS.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Python** : [guides/GUIDE_TECHNIQUE_COMPLET.md](guides/GUIDE_TECHNIQUE_COMPLET.md), [troubleshooting/CLOUDFLARE_BYPASS.md](troubleshooting/CLOUDFLARE_BYPASS.md)
+- **BigQuery** : [guides/BIGQUERY_GUIDE.md](guides/BIGQUERY_GUIDE.md), [guides/DBT_BIGQUERY_EXPLAINED.md](guides/DBT_BIGQUERY_EXPLAINED.md)
+- **DBT** : [guides/DBT_BIGQUERY_EXPLAINED.md](guides/DBT_BIGQUERY_EXPLAINED.md)
+- **GitHub Actions** : [setup/GITHUB_ACTIONS_SETUP.md](setup/GITHUB_ACTIONS_SETUP.md), [setup/GITHUB_SECRETS_GUIDE.md](setup/GITHUB_SECRETS_GUIDE.md)
+- **Streamlit** : [guides/STREAMLIT_GUIDE.md](guides/STREAMLIT_GUIDE.md), [guides/STREAMLIT_CLOUD_DEPLOY.md](guides/STREAMLIT_CLOUD_DEPLOY.md)
+- **Selenium** : [troubleshooting/CLOUDFLARE_BYPASS.md](troubleshooting/CLOUDFLARE_BYPASS.md), [troubleshooting/TROUBLESHOOTING.md](troubleshooting/TROUBLESHOOTING.md)
 
 ---
 
