@@ -11,6 +11,7 @@
 # et n'ont aucune valeur pour le projet
 
 .DS_Store           # Fichiers macOS (métadonnées des dossiers)
+**/.DS_Store        # Dans tous les sous-dossiers
 .DS_Store?
 ._*
 .Spotlight-V100
@@ -34,6 +35,7 @@ airflow_venv/       # Environnement Airflow dédié
 
 # Fichiers compilés Python
 __pycache__/        # Cache des modules Python
+**/__pycache__/     # Dans tous les sous-dossiers
 *.py[cod]           # .pyc, .pyo, .pyd
 *.so                # Bibliothèques compilées
 *.egg
