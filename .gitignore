@@ -197,6 +197,18 @@ liste_defis_projet.md
 Prompt_engineering.md
 
 # ============================================
+# 12.5 FICHIERS SENSIBLES / INTERNES
+# ============================================
+# Fichiers contenant des informations sensibles ou internes
+# qui ne doivent PAS être publics sur GitHub
+
+SECURITY.md                     # Instructions de configuration des credentials
+PROJECT_STRUCTURE.md            # Structure interne détaillée (optionnel)
+artifacts_git_hub_action/       # Artifacts téléchargés localement pour debug
+*_INTERNAL.md                   # Tous les fichiers marqués INTERNAL
+notes_personnelles/             # Notes personnelles de développement
+
+# ============================================
 # 13. ARCHIVE & AI COLLABORATION
 # ============================================
 # Fichiers obsolètes archivés et logs de collaboration IA
@@ -210,6 +222,7 @@ ai/                 # Notes de collaboration avec l'IA (mémoire vivante)
 # ============================================
 # Artifacts téléchargés depuis GitHub Actions (debug uniquement)
 git_hub_action_artifacts/
+artifacts_git_hub_action/       # Variante du nom
 
 # Fichiers debug HTML (générés par extraction)
 *_debug_*.html
@@ -218,4 +231,12 @@ data/bronze/**/*_debug_*.html
 # Checkpoints extraction (fichiers temporaires)
 .checkpoint_*.json
 data/bronze/**/.checkpoint_*.json
+
+# ============================================
+# 15. FICHIERS DE PRÉSENTATION (OPTIONNEL)
+# ============================================
+# Exclure les présentations PDF si trop volumineuses (> 10MB)
+# Décommenter si nécessaire :
+# *.pdf
+# !docs/**/*.pdf  # Garder les PDF dans docs/ si documentaires
 
