@@ -10,14 +10,18 @@
 # Ces fichiers sont créés automatiquement par l'OS
 # et n'ont aucune valeur pour le projet
 
-.DS_Store           # Fichiers macOS (métadonnées des dossiers)
-**/.DS_Store        # Dans tous les sous-dossiers
+# Fichiers macOS (métadonnées des dossiers)
+.DS_Store
+# Dans tous les sous-dossiers
+**/.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-Thumbs.db           # Fichiers Windows (miniatures)
-Desktop.ini         # Fichiers Windows (config dossier)
+# Fichiers Windows (miniatures)
+Thumbs.db
+# Fichiers Windows (config dossier)
+Desktop.ini
 ehthumbs.db
 
 # ============================================
@@ -31,13 +35,18 @@ env/
 ENV/
 .venv/
 virtualenv/
-airflow_venv/       # Environnement Airflow dédié
+# Environnement Airflow dédié
+airflow_venv/
 
 # Fichiers compilés Python
-__pycache__/        # Cache des modules Python
-**/__pycache__/     # Dans tous les sous-dossiers
-*.py[cod]           # .pyc, .pyo, .pyd
-*.so                # Bibliothèques compilées
+# Cache des modules Python
+__pycache__/
+# Dans tous les sous-dossiers
+**/__pycache__/
+# .pyc, .pyo, .pyd
+*.py[cod]
+# Bibliothèques compilées
+*.so
 *.egg
 *.egg-info/
 dist/
@@ -65,16 +74,21 @@ htmlcov/
 # Fichiers générés par Next.js et Node.js
 
 # Dépendances Node.js
-node_modules/       # Dossier ÉNORME avec toutes les librairies
+# Dossier ÉNORME avec toutes les librairies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json   # (optionnel, certains préfèrent le garder)
-yarn.lock           # (optionnel)
+# (optionnel, certains préfèrent le garder)
+package-lock.json
+# (optionnel)
+yarn.lock
 
 # Build Next.js
-.next/              # Dossier de build Next.js
-out/                # Export statique Next.js
+# Dossier de build Next.js
+.next/
+# Export statique Next.js
+out/
 build/
 
 # Cache Next.js
@@ -86,14 +100,16 @@ build/
 # Fichiers de logs et volumes Docker (si locaux)
 
 *.log
-docker-compose.override.yml  # Surcharges locales Docker
+# Surcharges locales Docker
+docker-compose.override.yml
 
 # ============================================
 # 5. VARIABLES D'ENVIRONNEMENT (SECRETS)
 # ============================================
 # ⚠️ TRÈS IMPORTANT : Ne JAMAIS pousser de secrets !
 
-.env                # Variables d'environnement (mots de passe, clés API)
+# Variables d'environnement (mots de passe, clés API)
+.env
 .env.local
 .env.*.local
 .env.production
@@ -121,7 +137,8 @@ docker-compose.override.yml  # Surcharges locales Docker
 # ============================================
 
 logs/
-data/logs/*.log     # Logs d'extraction
+# Logs d'extraction
+data/logs/*.log
 *.log
 *.tmp
 *.temp
@@ -135,16 +152,22 @@ data/logs/*.log     # Logs d'extraction
 # Données générées par crawls et outputs locaux
 
 # Données crawlées (JSON, HTML)
-data/outputs/       # Résultats de crawls Scrapy
-data/exploration/*.html     # Pages HTML explorées
+# Résultats de crawls Scrapy
+data/outputs/
+# Pages HTML explorées
+data/exploration/*.html
 
 # Fichiers NDJSON - garder seulement les fichiers de production
-data/bronze/**/*test*.ndjson        # Exclure fichiers de test
-data/bronze/**/*debug*.ndjson       # Exclure fichiers de debug
+# Exclure fichiers de test
+data/bronze/**/*test*.ndjson
+# Exclure fichiers de debug
+data/bronze/**/*debug*.ndjson
 # Note: Les fichiers de production (bf6_top_weapons_*.ndjson) sont versionnés
 
-*.json              # Tous les fichiers JSON (résultats crawls)
-!package.json       # Exception : garder package.json
+# Tous les fichiers JSON (résultats crawls)
+*.json
+# Exception : garder package.json
+!package.json
 
 # Scrapy cache et logs
 extract/.scrapy/
@@ -155,7 +178,8 @@ extract/spiders/__pycache__/
 extract/httpcache/
 
 # MinIO local
-data/minio/         # Stockage MinIO local (si utilisé en développement)
+# Stockage MinIO local (si utilisé en développement)
+data/minio/
 
 # ============================================
 # 9. BIGQUERY & DBT
@@ -164,8 +188,10 @@ data/minio/         # Stockage MinIO local (si utilisé en développement)
 
 # Clés d'API Google Cloud
 config/bigquery-key.json
-*.json              # Clés de service BigQuery
-!dbt/profiles.yml   # Exception : garder profiles.yml (template)
+# Clés de service BigQuery
+*.json
+# Exception : garder profiles.yml (template)
+!dbt/profiles.yml
 
 # DBT
 dbt/logs/
@@ -204,19 +230,26 @@ Prompt_engineering.md
 # Fichiers contenant des informations sensibles ou internes
 # qui ne doivent PAS être publics sur GitHub
 
-SECURITY.md                     # Instructions de configuration des credentials
-PROJECT_STRUCTURE.md            # Structure interne détaillée (optionnel)
-artifacts_git_hub_action/       # Artifacts téléchargés localement pour debug
-*_INTERNAL.md                   # Tous les fichiers marqués INTERNAL
-notes_personnelles/             # Notes personnelles de développement
+# Instructions de configuration des credentials
+SECURITY.md
+# Structure interne détaillée (optionnel)
+PROJECT_STRUCTURE.md
+# Artifacts téléchargés localement pour debug
+artifacts_git_hub_action/
+# Tous les fichiers marqués INTERNAL
+*_INTERNAL.md
+# Notes personnelles de développement
+notes_personnelles/
 
 # ============================================
 # 13. ARCHIVE & AI COLLABORATION
 # ============================================
 # Fichiers obsolètes archivés et logs de collaboration IA
 
-archive/            # Anciens scripts et données (pas besoin de versionner)
-ai/                 # Notes de collaboration avec l'IA (mémoire vivante)
+# Anciens scripts et données (pas besoin de versionner)
+archive/
+# Notes de collaboration avec l'IA (mémoire vivante)
+ai/
 
 
 # ============================================
@@ -224,7 +257,8 @@ ai/                 # Notes de collaboration avec l'IA (mémoire vivante)
 # ============================================
 # Artifacts téléchargés depuis GitHub Actions (debug uniquement)
 git_hub_action_artifacts/
-artifacts_git_hub_action/       # Variante du nom
+# Variante du nom
+artifacts_git_hub_action/
 
 # Fichiers debug HTML (générés par extraction)
 *_debug_*.html
